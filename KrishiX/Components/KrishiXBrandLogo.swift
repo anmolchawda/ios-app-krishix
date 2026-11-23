@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 public struct KrishiXBrandLogo: View {
     public var height: CGFloat = 36

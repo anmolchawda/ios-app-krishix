@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 public struct SettingsView: View {
     public var onOpenDrawer: () -> Void

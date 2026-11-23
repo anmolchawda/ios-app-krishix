@@ -44,7 +44,15 @@ jobs:
         if: failure()
         run: |
           echo "=== RECENT XCODEBUILD OUTPUT ==="
-          tail -n 120 xcodebuild.log || true
+          grep -E -C 3 -i "error:" xcodebuild.log || tail -n 150 xcodebuild.log
+
+      - name: Upload Build Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xcodebuild-Log
+          path: xcodebuild.log
+          retention-days: 7
 
       - name: Package IPA
         run: |
