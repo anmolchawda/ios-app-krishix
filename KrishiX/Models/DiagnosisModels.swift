@@ -142,51 +142,51 @@ public struct CropScienceData {
             code: "WP",
             fullName: "Wettable Powder",
             category: "Dry / Solid",
-            mixingOrderRank = 2,
+            mixingOrderRank: 2,
             description: "Dry finely milled powder with wetting agents. Forms physical suspension in water.",
             agitationAdvice: "Requires vigorous continuous agitation. Pre-slurry in a separate bucket.",
-            jarTestGuidance = "Mix 5g in 500ml water. Ensure no sediment cakes after 15 min.",
-            physicalRisk = "Can coagulate into sludge if added after EC formulations."
+            jarTestGuidance: "Mix 5g in 500ml water. Ensure no sediment cakes after 15 min.",
+            physicalRisk: "Can coagulate into sludge if added after EC formulations."
         ),
         FormulationType(
             code: "WDG",
             fullName: "Water Dispersible Granules",
             category: "Dry / Solid",
-            mixingOrderRank = 2,
+            mixingOrderRank: 2,
             description: "Granulated powder that disintegrates rapidly in water with low dust hazard.",
             agitationAdvice: "Needs active agitation until completely dissolved before adding liquids.",
-            jarTestGuidance = "Shake in 500ml water. Granules must dissolve within 60 seconds.",
-            physicalRisk = "Cold water (<12°C) slows dissolution; pre-dissolve in lukewarm water."
+            jarTestGuidance: "Shake in 500ml water. Granules must dissolve within 60 seconds.",
+            physicalRisk: "Cold water (<12°C) slows dissolution; pre-dissolve in lukewarm water."
         ),
         FormulationType(
             code: "SC",
             fullName: "Suspension Concentrate",
             category: "Liquid / Flowable",
-            mixingOrderRank = 3,
+            mixingOrderRank: 3,
             description: "Solid active ingredient suspended in liquid medium.",
             agitationAdvice: "Shake container before pouring. Maintain medium agitation.",
-            jarTestGuidance = "Mix 5ml in 500ml water. Check for uniform cloudy suspension.",
-            physicalRisk = "Extreme pH (<5 or >8.5) can cause flocculation."
+            jarTestGuidance: "Mix 5ml in 500ml water. Check for uniform cloudy suspension.",
+            physicalRisk: "Extreme pH (<5 or >8.5) can cause flocculation."
         ),
         FormulationType(
             code: "EC",
             fullName: "Emulsifiable Concentrate",
             category: "Oil / Emulsion",
-            mixingOrderRank = 4,
+            mixingOrderRank: 4,
             description: "Active ingredient dissolved in organic solvent with emulsifiers.",
             agitationAdvice: "Pour slowly into agitated tank. Bloom should turn milky white immediately.",
-            jarTestGuidance = "Mix 5ml in 500ml water. Look for oil droplets or cream layer on top.",
-            physicalRisk = "Mixing with micronutrients (Zinc/Iron) can cause emulsion inversion and scorching."
+            jarTestGuidance: "Mix 5ml in 500ml water. Look for oil droplets or cream layer on top.",
+            physicalRisk: "Mixing with micronutrients (Zinc/Iron) can cause emulsion inversion and scorching."
         ),
         FormulationType(
             code: "SL",
             fullName: "Soluble Liquid Concentrate",
             category: "Liquid Solution",
-            mixingOrderRank = 5,
+            mixingOrderRank: 5,
             description: "Clear liquid that completely dissolves in water forming true solution.",
             agitationAdvice: "Gentle agitation. Add toward the end of tank fill.",
-            jarTestGuidance = "Clear transparent mixture without turbidity.",
-            physicalRisk = "High salt index; do not mix concentrated fertilizers directly with SL."
+            jarTestGuidance: "Clear transparent mixture without turbidity.",
+            physicalRisk: "High salt index; do not mix concentrated fertilizers directly with SL."
         )
     ]
 
