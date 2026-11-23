@@ -26,16 +26,25 @@ jobs:
 
       - name: Build iOS App with Xcodebuild (Unsigned for Sideloadly)
         run: |
+          set -o pipefail
           xcodebuild -project KrishiX.xcodeproj \
             -scheme KrishiX \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath derived_data \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
+            CODE_SIGNING_ALLOWED=YES \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee xcodebuild.log
+
+      - name: Print build errors if failed
+        if: failure()
+        run: |
+          echo "=== RECENT XCODEBUILD OUTPUT ==="
+          tail -n 120 xcodebuild.log || true
 
       - name: Package IPA
         run: |

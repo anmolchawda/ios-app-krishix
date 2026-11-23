@@ -131,3 +131,9 @@ public struct MandiGeoData {
         return candles
     }
 }
+
+public struct MandiPriceEngine {
+    public static func generate7DayCandles(commodity: String = "", baseModal: Double) -> [DailyMandiCandle] {
+        return MandiGeoData.generate7DayCandles(baseModalPrice: baseModal)
+    }
+}
