@@ -7,9 +7,9 @@ public struct SettingsView: View {
     @ObservedObject private var translation = TranslationManager.shared
     
     @State private var showLanguagePicker: Bool = false
-    @State private var showLegalModal: Bool = false
-    @State private var legalModalTitle: String = ""
-    @State private var legalModalContent: String = ""
+    @State private var showWebViewModal: Bool = false
+    @State private var webViewTitle: String = ""
+    @State private var webViewUrl: String = ""
     
     public init(onOpenDrawer: @escaping () -> Void) {
         self.onOpenDrawer = onOpenDrawer
@@ -99,9 +99,9 @@ public struct SettingsView: View {
                         
                         // Privacy Policy
                         Button(action: {
-                            legalModalTitle = "Privacy Policy"
-                            legalModalContent = "KrishiX adheres to India's DPDP Act 2023. All farm telemetry and diagnostic images are stored securely on Google Cloud Firebase."
-                            showLegalModal = true
+                            webViewTitle = "Privacy Policy"
+                            webViewUrl = "https://krishix.co.in/privacy"
+                            showWebViewModal = true
                         }) {
                             HStack {
                                 Image(systemName: "lock.shield.fill")
@@ -122,9 +122,9 @@ public struct SettingsView: View {
                         
                         // Terms of Service
                         Button(action: {
-                            legalModalTitle = "Terms of Service"
-                            legalModalContent = "By using KrishiX, farmers agree to CIB&RC and ICAR agronomic guidance standards."
-                            showLegalModal = true
+                            webViewTitle = "Terms of Service"
+                            webViewUrl = "https://krishix.co.in/terms"
+                            showWebViewModal = true
                         }) {
                             HStack {
                                 Image(systemName: "doc.text.fill")
@@ -165,8 +165,8 @@ public struct SettingsView: View {
         .sheet(isPresented: $showLanguagePicker) {
             LanguagePickerSheet(isPresented: $showLanguagePicker)
         }
-        .sheet(isPresented: $showLegalModal) {
-            LegalDocModal(title: legalModalTitle, content: legalModalContent, isPresented: $showLegalModal)
+        .sheet(isPresented: $showWebViewModal) {
+            InAppPolicyWebViewModal(title: webViewTitle, urlString: webViewUrl, isPresented: $showWebViewModal)
         }
     }
     

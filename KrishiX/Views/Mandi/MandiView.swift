@@ -49,6 +49,9 @@ public struct MandiView: View {
                     
                     // 7-Day Candlestick & Trend Chart
                     MandiStockChartView(candles: weeklyCandles, mspPrice: 2275.0)
+                    
+                    // APMC Mandi Operational & Dispatch Advisory Card
+                    mandiAdvisoryCard
                 }
                 .padding(16)
                 .padding(.bottom, 60)
@@ -150,6 +153,73 @@ public struct MandiView: View {
         }
     }
     
+    // MARK: - Mandi Advisory Card
+    private var mandiAdvisoryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.badge.checkmark.fill")
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                    .font(.system(size: 16))
+                Text("APMC Yard Operational & Dispatch Guidance")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "storefront.fill")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 13))
+                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Gate Auction Hours: 06:00 AM – 12:30 PM")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(firebase.isDarkTheme ? .white : .primary)
+                        Text("Electronic weighbridge & sample inspection active. Arrive early for top lot priority.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "shippingbox.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 13))
+                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Quality & Grading Precaution")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(firebase.isDarkTheme ? .white : .primary)
+                        Text("Maintain moisture below 12% and remove chaff to qualify for Grade-A bidding premium.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                        .font(.system(size: 13))
+                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Price Trend vs MSP: ₹175/Qtl Premium")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                        Text("Current market arrivals are clearing at favorable rates. Bullish momentum expected through mid-week.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
+    }
+
     // MARK: - Price Overview Card
     private var priceOverviewCard: some View {
         VStack(alignment: .leading, spacing: 14) {

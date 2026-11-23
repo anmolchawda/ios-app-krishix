@@ -44,6 +44,38 @@ public struct HourlyForecast: Identifiable, Equatable {
     }
 }
 
+public struct DailyForecast: Identifiable, Equatable {
+    public var id: String { day }
+    public var day: String
+    public var date: String
+    public var condition: String
+    public var maxTemp: Int
+    public var minTemp: Int
+    public var rainChance: Int
+    public var iconType: String
+    public var sprayAdvisory: String
+
+    public init(
+        day: String,
+        date: String = "",
+        condition: String,
+        maxTemp: Int,
+        minTemp: Int,
+        rainChance: Int,
+        iconType: String = "sun.max.fill",
+        sprayAdvisory: String = "Safe for chemical & foliar spraying in early morning."
+    ) {
+        self.day = day
+        self.date = date
+        self.condition = condition
+        self.maxTemp = maxTemp
+        self.minTemp = minTemp
+        self.rainChance = rainChance
+        self.iconType = iconType
+        self.sprayAdvisory = sprayAdvisory
+    }
+}
+
 public struct RegionalDiseaseAlert: Identifiable, Codable, Equatable {
     public var id: String
     public var district: String

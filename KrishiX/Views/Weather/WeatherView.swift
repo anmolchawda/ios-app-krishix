@@ -57,6 +57,9 @@ public struct WeatherView: View {
                     // Hourly Forecast Strip
                     hourlyForecastSection
                     
+                    // 7-Day Extended Forecast Strip
+                    weeklyForecastSection
+                    
                     // Seasonal Pass Card
                     seasonalPassCard
                 }
@@ -244,6 +247,63 @@ public struct WeatherView: View {
                         .background(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
                         .cornerRadius(12)
                     }
+                }
+            }
+        }
+    }
+    
+    let weeklyForecast = [
+        DailyForecast(day: "Mon", date: "24 Nov", condition: "Sunny", maxTemp: 32, minTemp: 21, rainChance: 0, iconType: "sun.max.fill"),
+        DailyForecast(day: "Tue", date: "25 Nov", condition: "Partly Cloudy", maxTemp: 31, minTemp: 20, rainChance: 10, iconType: "cloud.sun.fill"),
+        DailyForecast(day: "Wed", date: "26 Nov", condition: "Clear Sky", maxTemp: 33, minTemp: 22, rainChance: 0, iconType: "sun.max.fill"),
+        DailyForecast(day: "Thu", date: "27 Nov", condition: "Moderate Wind", maxTemp: 29, minTemp: 19, rainChance: 15, iconType: "wind"),
+        DailyForecast(day: "Fri", date: "28 Nov", condition: "Scattered Rain", maxTemp: 28, minTemp: 18, rainChance: 45, iconType: "cloud.rain.fill", sprayAdvisory: "High rain risk. Postpone foliar spraying."),
+        DailyForecast(day: "Sat", date: "29 Nov", condition: "Sunny", maxTemp: 30, minTemp: 20, rainChance: 5, iconType: "sun.max.fill"),
+        DailyForecast(day: "Sun", date: "30 Nov", condition: "Clear Sky", maxTemp: 31, minTemp: 21, rainChance: 0, iconType: "sun.max.fill")
+    ]
+    
+    // MARK: - 7-Day Forecast Section
+    private var weeklyForecastSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("7-Day Weather Outlook")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.22, blue: 0.25))
+            
+            VStack(spacing: 8) {
+                ForEach(weeklyForecast) { item in
+                    HStack(spacing: 12) {
+                        Text(item.day)
+                            .font(.system(size: 13, weight: .bold))
+                            .frame(width: 36, alignment: .leading)
+                        
+                        Text(item.date)
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                            .frame(width: 48, alignment: .leading)
+                        
+                        Image(systemName: item.iconType)
+                            .foregroundColor(.orange)
+                            .font(.system(size: 16))
+                            .frame(width: 24)
+                        
+                        Text(item.condition)
+                            .font(.system(size: 12))
+                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : .primary)
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 4) {
+                            Text("\(item.maxTemp)°")
+                                .font(.system(size: 13, weight: .bold))
+                            Text("\(item.minTemp)°")
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
+                    .cornerRadius(10)
                 }
             }
         }

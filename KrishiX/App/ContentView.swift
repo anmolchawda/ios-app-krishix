@@ -36,6 +36,8 @@ public struct ContentView: View {
                                 )
                             case 6:
                                 ProfileSettingsView(onBack: { selectedTab = 0 })
+                            case 7:
+                                YojnaView(onOpenDrawer: { isDrawerOpen = true }, onBack: { selectedTab = 0 })
                             default:
                                 FeedView(onOpenDrawer: { isDrawerOpen = true })
                             }

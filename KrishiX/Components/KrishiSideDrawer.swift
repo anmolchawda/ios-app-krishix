@@ -7,9 +7,9 @@ public struct KrishiSideDrawer: View {
     @ObservedObject private var translation = TranslationManager.shared
     
     @State private var showLanguagePicker: Bool = false
-    @State private var showLegalModal: Bool = false
-    @State private var legalModalTitle: String = ""
-    @State private var legalModalContent: String = ""
+    @State private var showWebViewModal: Bool = false
+    @State private var webViewTitle: String = ""
+    @State private var webViewUrl: String = ""
     
     public init(isOpen: Binding<Bool>, selectedTab: Binding<Int>) {
         self._isOpen = isOpen
@@ -35,8 +35,8 @@ public struct KrishiSideDrawer: View {
         .sheet(isPresented: $showLanguagePicker) {
             LanguagePickerSheet(isPresented: $showLanguagePicker)
         }
-        .sheet(isPresented: $showLegalModal) {
-            LegalDocModal(title: legalModalTitle, content: legalModalContent, isPresented: $showLegalModal)
+        .sheet(isPresented: $showWebViewModal) {
+            InAppPolicyWebViewModal(title: webViewTitle, urlString: webViewUrl, isPresented: $showWebViewModal)
         }
     }
     
@@ -98,6 +98,7 @@ public struct KrishiSideDrawer: View {
                     drawerItem(icon: "chart.line.uptrend.xyaxis", title: translation.getString("mandi"), tabIndex: 4)
                     drawerItem(icon: "book.fill", title: translation.getString("guide"), tabIndex: 1)
                     drawerItem(icon: "dot.radiowaves.left.and.right", title: translation.getString("radar"), tabIndex: 5)
+                    drawerItem(icon: "building.columns.fill", title: "Government Schemes (योजना)", tabIndex: 7)
                     drawerItem(icon: "person.crop.circle.fill", title: translation.getString("profileSettings"), tabIndex: 6)
                     
                     Divider().padding(.vertical, 8)
@@ -167,9 +168,9 @@ public struct KrishiSideDrawer: View {
                     
                     // In-app Privacy & Terms
                     Button(action: {
-                        legalModalTitle = "Privacy Policy"
-                        legalModalContent = "KrishiX complies with the Digital Personal Data Protection (DPDP) Act 2023. Farmer telemetry, location, and crop diagnostics are end-to-end encrypted and never sold to third parties."
-                        showLegalModal = true
+                        webViewTitle = "Privacy Policy"
+                        webViewUrl = "https://krishix.co.in/privacy"
+                        showWebViewModal = true
                     }) {
                         HStack {
                             Image(systemName: "lock.shield.fill")

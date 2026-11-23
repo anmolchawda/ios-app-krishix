@@ -12,9 +12,9 @@ public struct AuthView: View {
     @State private var smsCode: String = "849201"
     
     @State private var showLanguagePicker: Bool = false
-    @State private var showLegalModal: Bool = false
-    @State private var legalModalTitle: String = ""
-    @State private var legalModalContent: String = ""
+    @State private var showWebViewModal: Bool = false
+    @State private var webViewTitle: String = ""
+    @State private var webViewUrl: String = ""
     
     public init() {}
     
@@ -120,8 +120,8 @@ public struct AuthView: View {
         .sheet(isPresented: $showLanguagePicker) {
             LanguagePickerSheet(isPresented: $showLanguagePicker)
         }
-        .sheet(isPresented: $showLegalModal) {
-            LegalDocModal(title: legalModalTitle, content: legalModalContent, isPresented: $showLegalModal)
+        .sheet(isPresented: $showWebViewModal) {
+            InAppPolicyWebViewModal(title: webViewTitle, urlString: webViewUrl, isPresented: $showWebViewModal)
         }
     }
     
@@ -167,19 +167,9 @@ public struct AuthView: View {
                     
                     HStack(spacing: 4) {
                         Button(action: {
-                            legalModalTitle = translation.getString("termsAndConditionsLink")
-                            legalModalContent = """
-                            Terms of Service - KrishiX Agriculture Platform
-                            
-                            1. Acceptance of Terms: By accessing KrishiX, you certify that you are a bona fide farmer or agricultural stakeholder at least 18 years of age.
-                            
-                            2. AI Agronomy Advisory: Recommendations provided by KrishiX AI Doctor, Tank-Mix Compatibility Engine, and Weather Alerts are formulated in accordance with the Central Insecticides Board & Registration Committee (CIB&RC) and ICAR protocols. However, local field conditions may vary; always conduct jar compatibility tests and follow local agricultural extension officer guidelines.
-                            
-                            3. Mandi Prices: Market prices are aggregated from Agmarknet and APMC state registries. KrishiX provides this data for educational and decision-support purposes without liability for spot trading discrepancies.
-                            
-                            4. Community Guidelines: Farmers must maintain constructive communication. Spam, abusive content, or unauthorized pesticide marketing is strictly prohibited.
-                            """
-                            showLegalModal = true
+                            webViewTitle = translation.getString("termsAndConditionsLink")
+                            webViewUrl = "https://krishix.co.in/terms"
+                            showWebViewModal = true
                         }) {
                             Text(translation.getString("termsAndConditionsLink"))
                                 .font(.system(size: 12, weight: .bold))
@@ -192,19 +182,9 @@ public struct AuthView: View {
                             .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.35, green: 0.38, blue: 0.42))
                         
                         Button(action: {
-                            legalModalTitle = translation.getString("privacyPolicyLink")
-                            legalModalContent = """
-                            Privacy Policy - KrishiX (DPDP Act 2023 Compliant)
-                            
-                            1. Data Protection Commitment: KrishiX strictly adheres to the provisions of India's Digital Personal Data Protection (DPDP) Act 2023. We collect only minimal required telemetry to deliver hyper-local agronomy insights.
-                            
-                            2. Personal Identifiers: Your verified phone number is encrypted via SHA-256 and stored exclusively on secure Google Cloud / Firebase servers with strict role-based access control.
-                            
-                            3. Geo-location Data: GPS coordinates obtained for Weather and Disease Radar are used solely for localized spray windows and APMC yard mapping. They are never sold to data brokers or third-party advertisers.
-                            
-                            4. Deletion & Portability: You retain the absolute right to export or request complete erasure of your farm records and diagnostic history at any time through Profile Settings.
-                            """
-                            showLegalModal = true
+                            webViewTitle = translation.getString("privacyPolicyLink")
+                            webViewUrl = "https://krishix.co.in/privacy"
+                            showWebViewModal = true
                         }) {
                             Text(translation.getString("privacyPolicyLink"))
                                 .font(.system(size: 12, weight: .bold))

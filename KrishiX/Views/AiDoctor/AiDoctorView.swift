@@ -319,7 +319,11 @@ public struct AiDoctorView: View {
                 organicRemedies: [
                     "Neem Seed Kernel Extract (NSKE 5%) foliar spray",
                     "Trichoderma viride 5g/L bio-fungicide soil & collar drench"
-                ]
+                ],
+                diagnosticClass: "Fungal / Oomycete Disease",
+                scientificName: "Puccinia striiformis f. sp. tritici",
+                favourableClimate: "Cool and moist conditions (10°C - 20°C) with persistent fog or morning dew.",
+                sprayAdvisory: "Spray window: Early morning (06:00 - 09:00) with wind < 8 km/h."
             )
             currentDiagnosis = diag
             scanHistory.insert(diag, at: 0)
@@ -351,10 +355,16 @@ public struct DiagnosisResultSheet: View {
                     // Header card
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text(diagnosis.cropName)
-                                .font(.system(size: 13, weight: .bold))
+                            Text(diagnosis.diagnosticClass.uppercased())
+                                .font(.system(size: 10, weight: .black))
                                 .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.12))
+                                .cornerRadius(4)
+                            
                             Spacer()
+                            
                             Text("\(diagnosis.confidenceScore)% Confidence")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
@@ -368,15 +378,44 @@ public struct DiagnosisResultSheet: View {
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.primary)
                         
+                        Text(diagnosis.scientificName)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.gray)
+                            .italic()
+                        
                         Text(diagnosis.diagnosisText)
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                             .lineSpacing(3)
                             .padding(.top, 4)
+                        
+                        // Favourable climate
+                        HStack(spacing: 4) {
+                            Image(systemName: "thermometer.sun.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 11))
+                            Text(diagnosis.favourableClimate)
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 2)
                     }
                     .padding(16)
                     .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.08))
                     .cornerRadius(14)
+                    
+                    // Spray Advisory Window
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock.badge.checkmark.fill")
+                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                        Text(diagnosis.sprayAdvisory)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.10))
+                    .cornerRadius(10)
                     
                     // CIB&RC Chemical Treatments
                     VStack(alignment: .leading, spacing: 10) {

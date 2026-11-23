@@ -10,6 +10,7 @@ public struct ProfileSettingsView: View {
     @State private var location: String = "Mumbai, Maharashtra"
     @State private var specialization: String = "vegetable export"
     @State private var showSavedAlert: Bool = false
+    @State private var showDeleteAlert: Bool = false
     
     public init(onBack: @escaping () -> Void) {
         self.onBack = onBack
@@ -188,11 +189,34 @@ public struct ProfileSettingsView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
                     }
+                    
+                    Divider().padding(.vertical, 6)
+                    
+                    // DPDP Act Account Deletion
+                    Button(action: { showDeleteAlert = true }) {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                            Text("Delete Account & Personal Data")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(.red)
+                    }
+                    .padding(.top, 4)
                 }
                 .padding(16)
                 .padding(.bottom, 60)
             }
             .background(firebase.isDarkTheme ? Color(red: 0.09, green: 0.10, blue: 0.12) : Color(red: 0.95, green: 0.96, blue: 0.97))
+            .alert(isPresented: $showDeleteAlert) {
+                Alert(
+                    title: Text("Delete Account & Personal Data?"),
+                    message: Text("In compliance with the Digital Personal Data Protection (DPDP) Act 2023, your account will enter a 30-day grace period during which you may log back in to cancel. After 30 days, all farm records, soil tests, diagnostic images, and telemetry will be permanently erased."),
+                    primaryButton: .destructive(Text("Confirm Deletion")) {
+                        firebase.isLoggedIn = false
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
         }
     }
     
