@@ -1,0 +1,40 @@
+name: KrishiX
+options:
+  bundleIdPrefix: com.krishix
+  deploymentTarget:
+    iOS: "16.0"
+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk.git
+    from: 10.28.0
+
+targets:
+  KrishiX:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: KrishiX
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.krishix.app
+      PRODUCT_NAME: KrishiX
+      INFOPLIST_FILE: KrishiX/Resources/Info.plist
+      GENERATE_INFOPLIST_FILE: "NO"
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      MARKETING_VERSION: "1.0"
+      CURRENT_PROJECT_VERSION: "1"
+      SWIFT_VERSION: "5.9"
+      CODE_SIGNING_ALLOWED: "NO"
+      CODE_SIGNING_REQUIRED: "NO"
+      CODE_SIGN_IDENTITY: ""
+      ENABLE_BITCODE: "NO"
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseStorage
+      - package: Firebase
+        product: FirebaseFunctions

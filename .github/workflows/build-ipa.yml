@@ -1,0 +1,53 @@
+name: Build KrishiX iOS IPA (SwiftUI + XcodeGen)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    name: Generate Xcode Project & Build Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Resolve Swift Package Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies -project KrishiX.xcodeproj -scheme KrishiX
+
+      - name: Build iOS App with Xcodebuild (Unsigned for Sideloadly)
+        run: |
+          xcodebuild -project KrishiX.xcodeproj \
+            -scheme KrishiX \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath derived_data \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          APP_PATH=$(find derived_data -name "KrishiX.app" -type d | head -n 1)
+          echo "Found app at: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r KrishiX.ipa Payload
+
+      - name: Upload KrishiX IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KrishiX-iOS-IPA
+          path: KrishiX.ipa
+          retention-days: 14

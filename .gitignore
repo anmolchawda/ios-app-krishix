@@ -1,0 +1,20 @@
+# Xcode
+*.xcodeproj
+*.xcworkspace
+!default.mode1v3
+!default.mode2v3
+!default.pbxuser
+!default.perspectivev3
+xcuserdata/
+derived_data/
+DerivedData/
+build/
+.build/
+Payload/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# OS
+.DS_Store
+Thumbs.db
