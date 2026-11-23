@@ -5,6 +5,9 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-ipa:
     name: Generate Xcode Project & Build Unsigned IPA
@@ -45,6 +48,18 @@ jobs:
         run: |
           echo "=== RECENT XCODEBUILD OUTPUT ==="
           grep -E -C 3 -i "error:" xcodebuild.log || tail -n 150 xcodebuild.log
+
+      - name: Push build log to branch on failure
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B build-logs
+          grep -E -C 4 -i "error:" xcodebuild.log > build-error-summary.txt || tail -n 250 xcodebuild.log > build-error-summary.txt
+          tail -n 300 xcodebuild.log > xcodebuild-tail.log
+          git add build-error-summary.txt xcodebuild-tail.log
+          git commit -m "build error log from run ${{ github.run_id }}" || true
+          git push -f origin build-logs || true
 
       - name: Upload Build Log on Failure
         if: failure()
