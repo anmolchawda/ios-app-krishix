@@ -138,7 +138,7 @@ public struct WeatherView: View {
                     }
                 }
                 .background(firebase.isDarkTheme ? Color(red: 0.16, green: 0.17, blue: 0.20) : Color.white)
-                .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
+                .cornerRadius(12)
                 .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
             }
         }
@@ -185,8 +185,8 @@ public struct WeatherView: View {
             // Atmospheric Parameters Grid
             HStack(spacing: 16) {
                 weatherStat(icon: "humidity.fill", title: "Humidity", value: "\(weatherInfo.humidity)%")
-                weatherStat(icon: "wind", title: "Wind", value: "\(weatherInfo.windSpeed) km/h")
-                weatherStat(icon: "drop.fill", title: "Precipitation", value: "\(weatherInfo.precipitation)%")
+                weatherStat(icon: "wind", title: "Wind", value: "\(weatherInfo.windSpeedKm) km/h")
+                weatherStat(icon: "drop.fill", title: "Precipitation", value: "\(weatherInfo.rainChance)%")
             }
         }
         .padding(18)

@@ -99,6 +99,22 @@ public struct MandiGeoData {
         "Chilli (Dry)", "Garlic", "Ginger", "Turmeric"
     ]
 
+    public static func mspBenchmark(for commodity: String) -> Double {
+        switch commodity.lowercased() {
+        case let c where c.contains("wheat"): return 2275.0
+        case let c where c.contains("paddy"): return 2183.0
+        case let c where c.contains("mustard"): return 5650.0
+        case let c where c.contains("soybean"): return 4600.0
+        case let c where c.contains("cotton"): return 6620.0
+        case let c where c.contains("maize"): return 2090.0
+        case let c where c.contains("chana") || c.contains("gram"): return 5440.0
+        case let c where c.contains("onion"): return 1800.0
+        case let c where c.contains("potato"): return 1500.0
+        case let c where c.contains("tomato"): return 1600.0
+        default: return 2400.0
+        }
+    }
+
     public static func generate7DayCandles(baseModalPrice: Double) -> [DailyMandiCandle] {
         let days = ["16 Nov", "17 Nov", "18 Nov", "19 Nov", "20 Nov", "21 Nov", "Today"]
         let dows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

@@ -10,6 +10,16 @@ public struct WeatherInfo: Equatable {
     public var sprayAdvisory: String
     public var isSpraySafe: Bool
 
+    public var windSpeed: Int {
+        get { windSpeedKm }
+        set { windSpeedKm = newValue }
+    }
+
+    public var precipitation: Int {
+        get { rainChance }
+        set { rainChance = newValue }
+    }
+
     public init(
         location: String = "Mumbai, Maharashtra",
         temp: Int = 22,
@@ -54,6 +64,7 @@ public struct DailyForecast: Identifiable, Equatable {
     public var rainChance: Int
     public var iconType: String
     public var sprayAdvisory: String
+    public var icon: String { iconType }
 
     public init(
         day: String,
