@@ -2,6 +2,8 @@ import SwiftUI
 
 public struct KrishiTopBar: View {
     public var onOpenDrawer: () -> Void
+    public var showBackButton: Bool = false
+    public var onBack: (() -> Void)? = nil
     public var onSearch: (() -> Void)? = nil
     public var onNotifications: (() -> Void)? = nil
     public var onChat: (() -> Void)? = nil
@@ -10,11 +12,15 @@ public struct KrishiTopBar: View {
     
     public init(
         onOpenDrawer: @escaping () -> Void,
+        showBackButton: Bool = false,
+        onBack: (() -> Void)? = nil,
         onSearch: (() -> Void)? = nil,
         onNotifications: (() -> Void)? = nil,
         onChat: (() -> Void)? = nil
     ) {
         self.onOpenDrawer = onOpenDrawer
+        self.showBackButton = showBackButton
+        self.onBack = onBack
         self.onSearch = onSearch
         self.onNotifications = onNotifications
         self.onChat = onChat
@@ -22,16 +28,30 @@ public struct KrishiTopBar: View {
     
     public var body: some View {
         HStack(spacing: 12) {
-            Button(action: onOpenDrawer) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.20))
+            if showBackButton, let onBack = onBack {
+                // Back Button: Navigates back to Feed (Requirement 13)
+                Button(action: onBack) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.13, green: 0.55, blue: 0.28))
+                    }
                     .frame(width: 40, height: 40)
                     .contentShape(Rectangle())
+                }
+            } else {
+                // Drawer Hamburger Button
+                Button(action: onOpenDrawer) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.20))
+                        .frame(width: 40, height: 40)
+                        .contentShape(Rectangle())
+                }
             }
             
-            // Prominent Brand Logo
-            KrishiXBrandLogo(height: 34, showBanner: true)
+            // Prominent Brand Logo (Requirement 7: Exchanged with drawer size for maximum visibility)
+            KrishiXBrandLogo(height: 46, showBanner: true)
             
             Spacer()
             

@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct GuideView: View {
     public var onOpenDrawer: () -> Void
+    public var onBack: (() -> Void)? = nil
     
     @ObservedObject private var firebase = FirebaseManager.shared
     @ObservedObject private var translation = TranslationManager.shared
@@ -9,8 +10,9 @@ public struct GuideView: View {
     @State private var selectedGuideTab: Int = 0
     @State private var selectedCropFilter: String = "All"
     @State private var diseaseSearchQuery: String = ""
-    @State private var expandedDiseaseId: String? = nil
+    @State private var selectedDiseaseForModal: CropDiseaseItem? = nil
     
+    // Tank Mix State
     @State private var selectedChemA: String = "Mancozeb 75% WP"
     @State private var selectedChemB: String = "Chlorantraniliprole 18.5% SC"
     
@@ -25,8 +27,9 @@ public struct GuideView: View {
         "Neem Oil 10,000 ppm"
     ]
     
-    public init(onOpenDrawer: @escaping () -> Void) {
+    public init(onOpenDrawer: @escaping () -> Void, onBack: (() -> Void)? = nil) {
         self.onOpenDrawer = onOpenDrawer
+        self.onBack = onBack
     }
     
     var filteredDiseases: [CropDiseaseItem] {
@@ -42,13 +45,18 @@ public struct GuideView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            KrishiTopBar(onOpenDrawer: onOpenDrawer)
+            // Top Bar with Back Button navigating to Feed (Requirement 13)
+            KrishiTopBar(
+                onOpenDrawer: onOpenDrawer,
+                showBackButton: true,
+                onBack: onBack
+            )
             
-            // Sub-tabs: Crop Pathology | Tank-Mix & WALES | Active Ingredients
+            // Sub-tabs: Crop Pathology | Tank-Mix (WALES) | Formulations & Risks
             HStack(spacing: 0) {
                 tabButton(title: "Crop Pathology", index: 0)
                 tabButton(title: "Tank-Mix (WALES)", index: 1)
-                tabButton(title: "CIB&RC Actives", index: 2)
+                tabButton(title: "Formulations & Incompatibilities", index: 2)
             }
             .background(firebase.isDarkTheme ? Color(red: 0.12, green: 0.13, blue: 0.15) : Color.white)
             
@@ -57,15 +65,21 @@ public struct GuideView: View {
                     if selectedGuideTab == 0 {
                         pathologyDirectoryContent
                     } else if selectedGuideTab == 1 {
-                        tankMixAndWalesContent
+                        tankMixSimulatorContent
                     } else {
-                        activeIngredientsContent
+                        formulationsAndIncompatibilitiesContent
                     }
                 }
                 .padding(16)
                 .padding(.bottom, 60)
             }
             .background(firebase.isDarkTheme ? Color(red: 0.09, green: 0.10, blue: 0.12) : Color(red: 0.95, green: 0.96, blue: 0.97))
+        }
+        .sheet(item: $selectedDiseaseForModal) { disease in
+            DiseaseDetailLandingModal(disease: disease, isPresented: Binding(
+                get: { selectedDiseaseForModal != nil },
+                set: { if !$0 { selectedDiseaseForModal = nil } }
+            ))
         }
     }
     
@@ -94,6 +108,7 @@ public struct GuideView: View {
                     .foregroundColor(.gray)
                 TextField("Search crop diseases, symptoms, pathogens...", text: $diseaseSearchQuery)
                     .font(.system(size: 14))
+                    .foregroundColor(firebase.isDarkTheme ? .white : .black)
                 if !diseaseSearchQuery.isEmpty {
                     Button(action: { diseaseSearchQuery = "" }) {
                         Image(systemName: "xmark.circle.fill")
@@ -132,19 +147,25 @@ public struct GuideView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
                 Spacer()
+                Text("Tap card for full clinical report")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
             }
             
-            // Disease Cards
+            // Disease Cards (Clickable to open DiseaseDetailLandingModal matching frame_04_12.3s.jpg)
             ForEach(filteredDiseases) { disease in
-                diseaseCard(disease: disease)
+                Button(action: {
+                    selectedDiseaseForModal = disease
+                }) {
+                    diseaseCard(disease: disease)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
     }
     
     private func diseaseCard(disease: CropDiseaseItem) -> some View {
-        let isExpanded = expandedDiseaseId == disease.id
-        
-        return VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
@@ -178,18 +199,11 @@ public struct GuideView: View {
                 
                 Spacer()
                 
-                Button(action: {
-                    withAnimation {
-                        expandedDiseaseId = isExpanded ? nil : disease.id
-                    }
-                }) {
-                    Image(systemName: isExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                }
+                Image(systemName: "chevron.right.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
             }
             
-            // Favourable Climate
             HStack(spacing: 4) {
                 Image(systemName: "thermometer.sun.fill")
                     .foregroundColor(.orange)
@@ -197,32 +211,6 @@ public struct GuideView: View {
                 Text(disease.favourableClimate)
                     .font(.system(size: 11))
                     .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.3, green: 0.3, blue: 0.3))
-            }
-            
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider().padding(.vertical, 2)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("DIAGNOSTIC SYMPTOMS")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                        Text(disease.symptoms)
-                            .font(.system(size: 12))
-                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.9) : Color(red: 0.18, green: 0.20, blue: 0.22))
-                            .lineSpacing(2)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("CIB&RC MANAGEMENT & DOSAGE")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(.blue)
-                        Text(disease.management)
-                            .font(.system(size: 12))
-                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.9) : Color(red: 0.18, green: 0.20, blue: 0.22))
-                            .lineSpacing(2)
-                    }
-                }
             }
         }
         .padding(14)
@@ -233,37 +221,80 @@ public struct GuideView: View {
         )
     }
     
-    // MARK: - 2. Tank-Mix & WALES Mixing Order Content
-    private var tankMixAndWalesContent: some View {
+    // MARK: - 2. Tank-Mix Simulator Content (Matching Video frame_06_18.4s.jpg)
+    private var tankMixSimulatorContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Interactive Tank-Mix Simulator")
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
             
-            VStack(spacing: 12) {
-                HStack {
-                    Text("Chemical 1:")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 85, alignment: .leading)
-                    Picker("", selection: $selectedChemA) {
+            // Dual Beaker Graphic & Selector
+            HStack(spacing: 16) {
+                // Tank A Beaker
+                VStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(red: 0.13, green: 0.55, blue: 0.28), lineWidth: 2)
+                            .frame(height: 100)
+                        
+                        VStack {
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(LinearGradient(colors: [Color.green.opacity(0.4), Color.green.opacity(0.7)], startPoint: .top, endPoint: .bottom))
+                                .frame(height: 60)
+                        }
+                        .padding(4)
+                        
+                        Text("Tank A")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .shadow(radius: 2)
+                    }
+                    
+                    Picker("Chemical 1", selection: $selectedChemA) {
                         ForEach(chemicalNames, id: \.self) { c in
                             Text(c).tag(c)
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
+                    .labelsHidden()
                 }
+                .frame(maxWidth: .infinity)
                 
-                HStack {
-                    Text("Chemical 2:")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 85, alignment: .leading)
-                    Picker("", selection: $selectedChemB) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                
+                // Tank B Beaker
+                VStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.blue, lineWidth: 2)
+                            .frame(height: 100)
+                        
+                        VStack {
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(LinearGradient(colors: [Color.blue.opacity(0.4), Color.blue.opacity(0.7)], startPoint: .top, endPoint: .bottom))
+                                .frame(height: 50)
+                        }
+                        .padding(4)
+                        
+                        Text("Tank B")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .shadow(radius: 2)
+                    }
+                    
+                    Picker("Chemical 2", selection: $selectedChemB) {
                         ForEach(chemicalNames, id: \.self) { c in
                             Text(c).tag(c)
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
+                    .labelsHidden()
                 }
+                .frame(maxWidth: .infinity)
             }
             .padding(14)
             .background(
@@ -271,7 +302,7 @@ public struct GuideView: View {
                     .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
             )
             
-            // Compatibility Result
+            // Compatibility Result Card
             let isSame = selectedChemA == selectedChemB
             let isMatch = CropScienceData.tankMixRules.first {
                 ($0.chemA == selectedChemA && $0.chemB == selectedChemB) ||
@@ -299,18 +330,20 @@ public struct GuideView: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill((compatible ? Color(red: 0.13, green: 0.55, blue: 0.28) : Color.red).opacity(0.12))
+                    .fill(compatible ? Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.08) : Color.red.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(compatible ? Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.3) : Color.red.opacity(0.3), lineWidth: 1)
+                    )
             )
             
-            // Standard WALES Mixing Order Guide
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
-                    Image(systemName: "list.number")
-                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                    Text("Standard WALES Tank Mixing Order")
-                        .font(.system(size: 15, weight: .bold))
-                }
-                
+            // WALES Mixing Order Section (Matching frame_06_18.4s.jpg)
+            Text("Standard Tank Mixing Sequence (WALES Rule)")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                .padding(.top, 8)
+            
+            VStack(spacing: 10) {
                 ForEach(CropScienceData.walesSteps) { step in
                     HStack(alignment: .top, spacing: 12) {
                         ZStack {
@@ -318,84 +351,271 @@ public struct GuideView: View {
                                 .fill(Color(red: 0.13, green: 0.55, blue: 0.28))
                                 .frame(width: 32, height: 32)
                             Text(step.letter)
-                                .font(.system(size: 15, weight: .black))
+                                .font(.system(size: 16, weight: .heavy))
                                 .foregroundColor(.white)
                         }
                         
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack {
-                                Text(step.title)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
-                                Spacer()
-                                Text(step.category)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                            }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(step.title)
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
                             Text(step.action)
-                                .font(.system(size: 12))
+                                .font(.system(size: 11))
                                 .foregroundColor(.gray)
                                 .lineSpacing(2)
                         }
                     }
-                    .padding(12)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(firebase.isDarkTheme ? Color(red: 0.14, green: 0.15, blue: 0.18) : Color.white)
                     )
                 }
             }
-            .padding(.top, 6)
         }
     }
     
-    // MARK: - 3. CIB&RC Actives Content
-    private var activeIngredientsContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("CIB&RC Registered Active Ingredients")
+    // MARK: - 3. Formulations & Critical Chemical Class Incompatibilities (Matching frames 07 & 09)
+    private var formulationsAndIncompatibilitiesContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Critical Incompatibilities Section (Matching frame_09_27.6s.jpg)
+            Text("Critical Chemical Class Incompatibilities")
                 .font(.system(size: 16, weight: .bold))
-                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                .foregroundColor(.red)
             
-            ForEach(CropScienceData.chemicals) { chem in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(chem.name)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                        Spacer()
-                        Text(chem.fracIracCode)
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.blue)
-                            .cornerRadius(4)
-                    }
-                    
-                    Text("Type: \(chem.type)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.25, green: 0.28, blue: 0.30))
-                    
-                    Text("Target Diseases/Pests: \(chem.targetDiseases)")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "drop.fill")
-                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                            .font(.system(size: 11))
-                        Text("Recommended Dosage: \(chem.cibrcDosage)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                    }
-                }
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
-                        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 1)
+            VStack(spacing: 12) {
+                incompatibilityCard(
+                    combo: "Thiophanate Methyl + Copper Fungicides",
+                    warning: "STRICTLY DO NOT MIX WITH",
+                    reason: "Alkaline bond cleavage breaks down active ingredient and destroys biological efficacy."
+                )
+                incompatibilityCard(
+                    combo: "Sulfur + Neem Oil / Any Crop Spray Oil",
+                    warning: "STRICTLY DO NOT MIX WITH",
+                    reason: "Oil acts as penetrant causing acute phytotoxic foliar scorching and massive defoliation in temperatures > 28°C."
+                )
+                incompatibilityCard(
+                    combo: "Bio-Fungicides (Trichoderma) + Chemical Fungicides",
+                    warning: "STRICTLY DO NOT MIX WITH",
+                    reason: "Chemical active ingredients kill living beneficial fungal spores in the spray tank instantaneously."
                 )
             }
+            
+            // Formulations Directory (Matching frame_07_21.5s.jpg)
+            Text("Pesticide Formulations Directory")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                .padding(.top, 10)
+            
+            VStack(spacing: 12) {
+                ForEach(CropScienceData.formulations) { form in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(form.code)
+                                .font(.system(size: 15, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(red: 0.13, green: 0.55, blue: 0.28))
+                                .cornerRadius(6)
+                            
+                            Text(form.fullName)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                            
+                            Spacer()
+                            
+                            Text("Rank #\(form.mixingOrderRank)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        Text(form.description)
+                            .font(.system(size: 12))
+                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.25, green: 0.28, blue: 0.30))
+                        
+                        HStack(alignment: .top, spacing: 4) {
+                            Text("⚠️ Risk:")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.orange)
+                            Text(form.physicalRisk)
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(firebase.isDarkTheme ? Color(red: 0.14, green: 0.15, blue: 0.18) : Color.white)
+                    )
+                }
+            }
+        }
+    }
+    
+    private func incompatibilityCard(combo: String, warning: String, reason: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(warning)
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.red)
+                    .cornerRadius(4)
+                
+                Spacer()
+            }
+            
+            Text(combo)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+            
+            Text(reason)
+                .font(.system(size: 12))
+                .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.35, green: 0.38, blue: 0.42))
+                .lineSpacing(2)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(firebase.isDarkTheme ? Color(red: 0.14, green: 0.15, blue: 0.18) : Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.red.opacity(0.35), lineWidth: 1)
+                )
+        )
+    }
+}
+
+// MARK: - Disease Detail Landing Modal (Matching Video frame_04_12.3s.jpg)
+public struct DiseaseDetailLandingModal: View {
+    public let disease: CropDiseaseItem
+    @Binding public var isPresented: Bool
+    
+    @ObservedObject private var firebase = FirebaseManager.shared
+    @State private var selectedPhotoIndex: Int = 0
+    
+    public var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    // Header Banner with Symptom Photos Carousel
+                    VStack(alignment: .leading, spacing: 8) {
+                        TabView(selection: $selectedPhotoIndex) {
+                            symptomSlide(title: "1. Primary Symptom Lesion", index: 0)
+                                .tag(0)
+                            symptomSlide(title: "2. Field Damage & Progression", index: 1)
+                                .tag(1)
+                        }
+                        .frame(height: 200)
+                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                        .cornerRadius(14)
+                    }
+                    
+                    // Disease Title & Scientific Name
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(disease.cropName)
+                                .font(.system(size: 12, weight: .heavy))
+                                .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.12))
+                                .cornerRadius(6)
+                            
+                            Text(disease.category)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.blue.opacity(0.12))
+                                .cornerRadius(6)
+                        }
+                        
+                        Text(disease.name)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                        
+                        Text(disease.scientificName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.gray)
+                            .italic()
+                    }
+                    
+                    Divider()
+                    
+                    // Causing Agent Card
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CAUSING PATHOGEN / AGENT")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                        Text(disease.causingAgent)
+                            .font(.system(size: 14))
+                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                    }
+                    
+                    // Favourable Climate Card
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("FAVOURABLE CLIMATE & CONDITIONS")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(.orange)
+                        Text(disease.favourableClimate)
+                            .font(.system(size: 14))
+                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                    }
+                    
+                    // Symptoms Card
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("DIAGNOSTIC FIELD SYMPTOMS")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(.purple)
+                        Text(disease.symptoms)
+                            .font(.system(size: 14))
+                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                            .lineSpacing(3)
+                    }
+                    
+                    // Management & Dosages Card
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CIB&RC MANAGEMENT & SPRAY DOSAGES")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(.blue)
+                        Text(disease.management)
+                            .font(.system(size: 14))
+                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                            .lineSpacing(3)
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("Clinical Disease Details")
+            .navigationBarItems(trailing: Button("Close") {
+                isPresented = false
+            })
+        }
+    }
+    
+    private func symptomSlide(title: String, index: Int) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            Color(red: 0.18, green: 0.22, blue: 0.20)
+            
+            VStack {
+                Spacer()
+                Image(systemName: "leaf.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.8))
+                Spacer()
+            }
+            
+            Text(title)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+                .padding(10)
+                .background(Color.black.opacity(0.55))
+                .cornerRadius(8)
+                .padding(12)
         }
     }
 }

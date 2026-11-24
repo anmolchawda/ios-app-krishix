@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct MandiView: View {
     public var onOpenDrawer: () -> Void
+    public var onBack: (() -> Void)? = nil
     
     @ObservedObject private var firebase = FirebaseManager.shared
     @ObservedObject private var translation = TranslationManager.shared
@@ -26,29 +27,40 @@ public struct MandiView: View {
     )
     
     @State private var weeklyCandles = MandiPriceEngine.generate7DayCandles(commodity: "Wheat", baseModal: 2450.0)
+    @State private var mspBenchmark: Double = 2275.0
     
-    public init(onOpenDrawer: @escaping () -> Void) {
+    public init(onOpenDrawer: @escaping () -> Void, onBack: (() -> Void)? = nil) {
         self.onOpenDrawer = onOpenDrawer
+        self.onBack = onBack
     }
     
     var districtOptions: [String] {
         MandiGeoData.stateHierarchy[selectedState] ?? ["Main Yard"]
     }
     
+    var mspDifference: Double {
+        currentRecord.modalPrice - mspBenchmark
+    }
+    
     public var body: some View {
         VStack(spacing: 0) {
-            KrishiTopBar(onOpenDrawer: onOpenDrawer)
+            // Top Bar with Back Button navigating to Feed (Requirement 13)
+            KrishiTopBar(
+                onOpenDrawer: onOpenDrawer,
+                showBackButton: true,
+                onBack: onBack
+            )
             
             ScrollView {
                 VStack(spacing: 16) {
                     // Header & Filter Card
                     filterCard
                     
-                    // Current Price Overview
+                    // Current Price Overview (Matching Video rest_50.0s.jpg)
                     priceOverviewCard
                     
-                    // 7-Day Candlestick & Trend Chart
-                    MandiStockChartView(candles: weeklyCandles, mspPrice: 2275.0)
+                    // 7-Day Candlestick & MSP Chart (Requirement 12)
+                    MandiStockChartView(candles: weeklyCandles, mspPrice: mspBenchmark)
                     
                     // APMC Mandi Operational & Dispatch Advisory Card
                     mandiAdvisoryCard
@@ -153,104 +165,88 @@ public struct MandiView: View {
         }
     }
     
-    // MARK: - Mandi Advisory Card
-    private var mandiAdvisoryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "clock.badge.checkmark.fill")
-                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                    .font(.system(size: 16))
-                Text("APMC Yard Operational & Dispatch Guidance")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "storefront.fill")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 13))
-                        .padding(.top, 2)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Gate Auction Hours: 06:00 AM – 12:30 PM")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(firebase.isDarkTheme ? .white : .primary)
-                        Text("Electronic weighbridge & sample inspection active. Arrive early for top lot priority.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
-                    }
-                }
-                
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "shippingbox.fill")
-                        .foregroundColor(.orange)
-                        .font(.system(size: 13))
-                        .padding(.top, 2)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Quality & Grading Precaution")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(firebase.isDarkTheme ? .white : .primary)
-                        Text("Maintain moisture below 12% and remove chaff to qualify for Grade-A bidding premium.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
-                    }
-                }
-                
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                        .font(.system(size: 13))
-                        .padding(.top, 2)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Price Trend vs MSP: ₹175/Qtl Premium")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                        Text("Current market arrivals are clearing at favorable rates. Bullish momentum expected through mid-week.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
-                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
-        )
-    }
-
-    // MARK: - Price Overview Card
+    // MARK: - Price Overview Card (Matching Video rest_50.0s.jpg: Modal Price & Below/Above MSP Badge)
     private var priceOverviewCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(currentRecord.commodity) (\(currentRecord.variety))")
-                        .font(.system(size: 18, weight: .bold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(currentRecord.commodity)
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
-                    
-                    Text("\(currentRecord.market), \(currentRecord.state)")
+                    Text("\(currentRecord.market) • \(currentRecord.variety)")
                         .font(.system(size: 12))
                         .foregroundColor(.gray)
                 }
                 
                 Spacer()
                 
+                // Below or Above MSP Badge (Matching Video rest_50.0s.jpg)
+                HStack(spacing: 4) {
+                    Image(systemName: mspDifference >= 0 ? "arrow.up.right" : "arrow.down.right")
+                    Text(mspDifference >= 0 ? "+₹\(Int(mspDifference)) Above MSP" : "-₹\(Int(abs(mspDifference))) Below MSP")
+                        .font(.system(size: 11, weight: .heavy))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .foregroundColor(mspDifference >= 0 ? Color(red: 0.13, green: 0.55, blue: 0.28) : .red)
+                .background(
+                    (mspDifference >= 0 ? Color(red: 0.13, green: 0.55, blue: 0.28) : Color.red).opacity(0.12)
+                )
+                .cornerRadius(8)
+            }
+            
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
+                Text("₹\(Int(currentRecord.modalPrice))")
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                
+                Text("/ Quintal")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.gray)
+                
+                Spacer()
+                
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("₹\(Int(currentRecord.modalPrice))")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                    
-                    Text("per Quintal")
-                        .font(.system(size: 11))
+                    Text("Govt. MSP")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.gray)
+                    Text("₹\(Int(mspBenchmark))")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Color.orange)
                 }
             }
             
-            HStack(spacing: 12) {
-                priceStat(title: "Min Price", price: "₹\(Int(currentRecord.minPrice))", color: .gray)
-                priceStat(title: "Modal Price", price: "₹\(Int(currentRecord.modalPrice))", color: Color(red: 0.13, green: 0.55, blue: 0.28))
-                priceStat(title: "Max Price", price: "₹\(Int(currentRecord.maxPrice))", color: Color(red: 0.13, green: 0.55, blue: 0.28))
+            Divider()
+            
+            HStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Min Rate")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                    Text("₹\(Int(currentRecord.minPrice))")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(firebase.isDarkTheme ? .white : .primary)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Max Rate")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                    Text("₹\(Int(currentRecord.maxPrice))")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(firebase.isDarkTheme ? .white : .primary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Daily Arrival")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                    Text("\(currentRecord.arrivalTonnes) Tonnes")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                }
             }
         }
         .padding(16)
@@ -261,48 +257,51 @@ public struct MandiView: View {
         )
     }
     
-    private func priceStat(title: String, price: String, color: Color) -> some View {
-        VStack(spacing: 3) {
-            Text(title)
-                .font(.system(size: 11))
-                .foregroundColor(.gray)
-            Text(price)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(color)
+    // MARK: - Mandi Advisory Card
+    private var mandiAdvisoryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.badge.checkmark.fill")
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                Text("APMC Yard Operational Hours & Advisory")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+            }
+            
+            VStack(alignment: .leading, spacing: 6) {
+                bullet(text: "Daily Open Auction Bidding: 09:00 AM - 02:00 PM")
+                bullet(text: "Gate Entry & Weighbridge tokens issued till 11:30 AM")
+                bullet(text: "Traders participation: Active (Grade-A clean produce fetched 8-12% premium)")
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(firebase.isDarkTheme ? Color(red: 0.16, green: 0.17, blue: 0.20) : Color(red: 0.96, green: 0.97, blue: 0.98))
-        .cornerRadius(8)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
+        )
+    }
+    
+    private func bullet(text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text("•")
+                .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.25, green: 0.28, blue: 0.30))
+        }
     }
     
     private func searchPrices() {
-        let base: Double
-        switch selectedCommodity {
-        case "Wheat": base = 2450.0
-        case "Soybean": base = 4800.0
-        case "Cotton": base = 6900.0
-        case "Paddy (Dhan)": base = 2183.0
-        case "Mustard": base = 5400.0
-        case "Onion": base = 1800.0
-        case "Tomato": base = 2200.0
-        default: base = 2500.0
-        }
-        
-        currentRecord = MandiPriceRecord(
+        firebase.fetchLiveMandiPrices(
             state: selectedState,
             district: selectedDistrict,
-            market: selectedMarket,
-            commodity: selectedCommodity,
-            variety: "Standard FAQ",
-            grade: "FAQ Grade A",
-            arrivalDate: "Today (Live)",
-            minPrice: base * 0.92,
-            maxPrice: base * 1.08,
-            modalPrice: base,
-            arrivalTonnes: Int.random(in: 450...1800)
-        )
-        
-        weeklyCandles = MandiPriceEngine.generate7DayCandles(commodity: selectedCommodity, baseModal: base)
+            commodity: selectedCommodity
+        ) { records, candles in
+            if let first = records.first {
+                self.currentRecord = first
+            }
+            self.weeklyCandles = candles
+            self.mspBenchmark = MandiGeoData.mspBenchmark(for: selectedCommodity)
+        }
     }
 }

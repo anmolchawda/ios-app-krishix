@@ -8,15 +8,32 @@ public struct AuthView: View {
     @State private var agreedToTerms: Bool = true
     @State private var isOtpStep: Bool = false
     @State private var otpCode: String = ""
-    @State private var showSmsBanner: Bool = false
-    @State private var smsCode: String = "849201"
+    @State private var isSendingOtp: Bool = false
+    @State private var isVerifying: Bool = false
+    @State private var errorMessage: String? = nil
     
+    // In-app SMS Banner Simulation matching real Firebase SMS notification
+    @State private var showSmsBanner: Bool = false
+    @State private var smsCode: String = "163420"
+    
+    // Countdown Timers
+    @State private var otpValiditySeconds: Int = 300 // 5:00 minutes
+    @State private var resendCooldownSeconds: Int = 60
+    @State private var timerSubscription: Timer? = nil
+    
+    // Policy Sheets
     @State private var showLanguagePicker: Bool = false
     @State private var showWebViewModal: Bool = false
     @State private var webViewTitle: String = ""
     @State private var webViewUrl: String = ""
     
     public init() {}
+    
+    var formattedValidityTime: String {
+        let minutes = otpValiditySeconds / 60
+        let seconds = otpValiditySeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
     
     public var body: some View {
         ZStack(alignment: .top) {
@@ -25,92 +42,60 @@ public struct AuthView: View {
             
             VStack(spacing: 0) {
                 // Top control bar: Dark mode & Language pills
-                HStack {
-                    Button(action: {
-                        withAnimation {
-                            firebase.isDarkTheme.toggle()
-                        }
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: firebase.isDarkTheme ? "moon.stars.fill" : "sun.max.fill")
-                                .font(.system(size: 13))
-                            Text(firebase.isDarkTheme ? "Dark" : "Light")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color.white)
-                        .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.2, blue: 0.2))
-                        .cornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: { showLanguagePicker = true }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "globe")
-                                .font(.system(size: 13))
-                            Text(TranslationManager.supportedLanguages.first(where: { $0.code == translation.currentLanguage })?.englishName ?? "English")
-                                .font(.system(size: 13, weight: .semibold))
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 10))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color.white)
-                        .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.2, blue: 0.2))
-                        .cornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
+                topControlBar
                 
                 Spacer()
                 
-                // Card Container
-                VStack(spacing: 24) {
-                    // Large Crisp Brand Logo
-                    KrishiXBrandLogo(height: 52, showBanner: true)
-                        .padding(.bottom, 6)
-                    
-                    VStack(spacing: 6) {
-                        Text(isOtpStep ? translation.getString("enterOtpTitle") : translation.getString("welcomeTitle"))
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
-                            .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
-                            .tracking(1)
-                        
-                        Text(isOtpStep ? "\(translation.getString("otpSubtitle")) +91 \(phoneNumber)" : translation.getString("startConnectingSubtitle"))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color.gray)
-                            .multilineTextAlignment(.center)
-                    }
+                // Main Auth Card Container
+                VStack(spacing: 22) {
+                    // Large Crisp Prominent Brand Logo (Point 1 fix)
+                    KrishiXBrandLogo(height: 64, showBanner: true)
+                        .padding(.bottom, 4)
                     
                     if !isOtpStep {
+                        VStack(spacing: 6) {
+                            Text(translation.getString("welcomeTitle"))
+                                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                                .tracking(1)
+                            
+                            Text(translation.getString("startConnectingSubtitle"))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        
                         phoneInputSection
                     } else {
                         otpInputSection
                     }
+                    
+                    if let err = errorMessage {
+                        Text(err)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 4)
+                    }
                 }
-                .padding(28)
+                .padding(26)
                 .background(
                     (firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
                         .cornerRadius(24)
-                        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
+                        .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 4)
                 )
                 .padding(.horizontal, 20)
                 
                 Spacer()
                 
-                // Copyright footer
-                Text("© 2023 KrishiX. All rights reserved.")
+                // Footer
+                Text("© 2026 KrishiX • Digital India Agriculture")
                     .font(.system(size: 12))
                     .foregroundColor(Color.gray.opacity(0.7))
                     .padding(.bottom, 24)
             }
             
-            // In-app SMS notification simulation banner
+            // In-app realistic SMS notification matching krishix-aistudio-3090db.firebaseapp.com
             if showSmsBanner {
                 smsNotificationBanner
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -123,9 +108,57 @@ public struct AuthView: View {
         .sheet(isPresented: $showWebViewModal) {
             InAppPolicyWebViewModal(title: webViewTitle, urlString: webViewUrl, isPresented: $showWebViewModal)
         }
+        .onDisappear {
+            stopTimer()
+        }
     }
     
-    // MARK: - Phone Input
+    // MARK: - Top Control Bar
+    private var topControlBar: some View {
+        HStack {
+            Button(action: {
+                withAnimation {
+                    firebase.isDarkTheme.toggle()
+                }
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: firebase.isDarkTheme ? "moon.stars.fill" : "sun.max.fill")
+                        .font(.system(size: 13))
+                    Text(firebase.isDarkTheme ? "Dark" : "Light")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color.white)
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.2, blue: 0.2))
+                .cornerRadius(20)
+                .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
+            }
+            
+            Spacer()
+            
+            Button(action: { showLanguagePicker = true }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 13))
+                    Text(TranslationManager.supportedLanguages.first(where: { $0.code == translation.currentLanguage })?.englishName ?? "English")
+                        .font(.system(size: 13, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color.white)
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.2, blue: 0.2))
+                .cornerRadius(20)
+                .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+    }
+    
+    // MARK: - 1. Phone Input Section
     private var phoneInputSection: some View {
         VStack(spacing: 18) {
             HStack(spacing: 10) {
@@ -148,10 +181,14 @@ public struct AuthView: View {
                     .padding(.vertical, 14)
                     .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color(red: 0.95, green: 0.96, blue: 0.97))
                     .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.35), lineWidth: 1.5)
+                    )
                     .foregroundColor(firebase.isDarkTheme ? .white : .black)
             }
             
-            // Terms of Service & Privacy Policy checkbox with clickable in-app links
+            // Terms of Service & Privacy Policy Checkbox (Point 2 Fix with In-App Browser)
             HStack(alignment: .top, spacing: 10) {
                 Button(action: { agreedToTerms.toggle() }) {
                     Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
@@ -196,82 +233,147 @@ public struct AuthView: View {
             }
             .padding(.top, 4)
             
-            // Verify Button
-            Button(action: triggerOtpVerification) {
-                HStack {
-                    Text(translation.getString("getOtpButton"))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
+            // Verify Button -> (Video UX: "Verify ->")
+            Button(action: requestOtpFromFirebase) {
+                HStack(spacing: 8) {
+                    if isSendingOtp {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Text("Verify  →")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(
-                    (agreedToTerms && phoneNumber.count >= 10) ?
+                    (agreedToTerms && phoneNumber.count >= 10 && !isSendingOtp) ?
                     Color(red: 0.13, green: 0.55, blue: 0.28) :
                     Color.gray.opacity(0.4)
                 )
                 .cornerRadius(14)
             }
-            .disabled(!agreedToTerms || phoneNumber.count < 10)
+            .disabled(!agreedToTerms || phoneNumber.count < 10 || isSendingOtp)
         }
     }
     
-    // MARK: - OTP Input
+    // MARK: - 2. OTP Input Section (Matching Video Frames: login_2.7s.jpg)
     private var otpInputSection: some View {
-        VStack(spacing: 20) {
-            TextField("••••••", text: $otpCode)
-                .keyboardType(.numberPad)
-                .font(.system(size: 28, weight: .bold, design: .monospaced))
-                .multilineTextAlignment(.center)
-                .padding(.vertical, 14)
-                .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color(red: 0.95, green: 0.96, blue: 0.97))
-                .cornerRadius(12)
-                .foregroundColor(firebase.isDarkTheme ? .white : .black)
-            
-            Button(action: verifyOtpAndLogin) {
-                HStack {
-                    Text(translation.getString("verifyOtpButton"))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(
-                    otpCode.count >= 4 ?
-                    Color(red: 0.13, green: 0.55, blue: 0.28) :
-                    Color.gray.opacity(0.4)
-                )
-                .cornerRadius(14)
-            }
-            .disabled(otpCode.count < 4)
-            
+        VStack(spacing: 16) {
+            // Selected Phone & Change Number Row
             HStack {
+                HStack(spacing: 6) {
+                    Text("🇮🇳 +91 \(phoneNumber)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color(red: 0.94, green: 0.95, blue: 0.96))
+                .cornerRadius(8)
+                
+                Spacer()
+                
                 Button(action: {
                     withAnimation {
                         isOtpStep = false
                         otpCode = ""
                         showSmsBanner = false
+                        stopTimer()
                     }
                 }) {
-                    Text(translation.getString("changeNumber"))
-                        .font(.system(size: 13, weight: .semibold))
+                    Text("Change Number")
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
                 }
+            }
+            
+            VStack(spacing: 4) {
+                Text("Enter OTP")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
                 
-                Spacer()
+                Text("Enter the 6-digit code sent to your phone")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            .padding(.top, 4)
+            
+            // OTP Input Field
+            TextField("OTP here", text: $otpCode)
+                .keyboardType(.numberPad)
+                .font(.system(size: 26, weight: .heavy, design: .monospaced))
+                .multilineTextAlignment(.center)
+                .padding(.vertical, 14)
+                .background(firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color(red: 0.95, green: 0.96, blue: 0.97))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.4), lineWidth: 1.5)
+                )
+                .foregroundColor(firebase.isDarkTheme ? .white : .black)
+            
+            // Valid for: 05:00 Pill (Matching Video Frame)
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                    .font(.system(size: 12))
                 
-                Button(action: {
-                    triggerOtpVerification()
-                }) {
-                    Text(translation.getString("resendOtpLink"))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.gray)
+                Text("Valid for: \(formattedValidityTime)")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.12))
+            .cornerRadius(16)
+            
+            // Verify Button (Matching Video Frame: "✓ Verify")
+            Button(action: verifyOtpCode) {
+                HStack(spacing: 8) {
+                    if isVerifying {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 15, weight: .bold))
+                        Text("Verify")
+                            .font(.system(size: 16, weight: .bold))
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .foregroundColor(.white)
+                .background(
+                    otpCode.count >= 6 && !isVerifying ?
+                    Color(red: 0.13, green: 0.55, blue: 0.28) :
+                    Color.gray.opacity(0.4)
+                )
+                .cornerRadius(14)
+            }
+            .disabled(otpCode.count < 6 || isVerifying)
+            
+            // Resend Countdown
+            if resendCooldownSeconds > 0 {
+                Text("You can resend in \(resendCooldownSeconds) seconds")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.gray)
+                    .padding(.top, 2)
+            } else {
+                Button(action: {
+                    requestOtpFromFirebase()
+                }) {
+                    Text("Resend OTP")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                }
+                .padding(.top, 2)
             }
         }
     }
     
-    // MARK: - Interactive SMS Notification Banner
+    // MARK: - Interactive SMS Notification Banner (Exact Firebase Auth SMS simulation)
     private var smsNotificationBanner: some View {
         Button(action: {
             otpCode = smsCode
@@ -287,16 +389,17 @@ public struct AuthView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text("MESSAGES • now")
-                            .font(.system(size: 11, weight: .black))
+                            .font(.system(size: 10, weight: .black))
                             .foregroundColor(.gray)
                         Spacer()
                         Text("Tap to autofill")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
                     }
-                    Text("KrishiX Verification Code: \(smsCode). Valid for 10 minutes.")
-                        .font(.system(size: 13, weight: .semibold))
+                    Text("\(smsCode) is your verification code for krishix-aistudio-3090db.firebaseapp.com")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.primary)
+                        .lineLimit(2)
                 }
             }
             .padding(14)
@@ -310,22 +413,68 @@ public struct AuthView: View {
         }
     }
     
-    private func triggerOtpVerification() {
-        withAnimation {
-            isOtpStep = true
-            showSmsBanner = true
-            smsCode = "849201"
-        }
+    // MARK: - Auth Actions
+    private func requestOtpFromFirebase() {
+        errorMessage = nil
+        isSendingOtp = true
         
-        // Auto-dismiss the simulated SMS banner after 8 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-            withAnimation {
-                showSmsBanner = false
+        firebase.sendOtp(phoneNumber: phoneNumber) { result in
+            isSendingOtp = false
+            switch result {
+            case .success(let code):
+                smsCode = code
+                withAnimation {
+                    isOtpStep = true
+                    showSmsBanner = true
+                }
+                startTimers()
+                
+                // Auto-dismiss banner after 8s
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                    withAnimation {
+                        showSmsBanner = false
+                    }
+                }
+            case .failure(let error):
+                errorMessage = error.localizedDescription
             }
         }
     }
     
-    private func verifyOtpAndLogin() {
-        _ = firebase.loginWithPhone(phoneNumber: phoneNumber, otp: otpCode)
+    private func verifyOtpCode() {
+        errorMessage = nil
+        isVerifying = true
+        
+        firebase.verifyOtp(code: otpCode, phoneNumber: phoneNumber) { result in
+            isVerifying = false
+            switch result {
+            case .success:
+                stopTimer()
+            case .failure(let error):
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    private func startTimers() {
+        stopTimer()
+        otpValiditySeconds = 300
+        resendCooldownSeconds = 60
+        
+        timerSubscription = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                if self.otpValiditySeconds > 0 {
+                    self.otpValiditySeconds -= 1
+                }
+                if self.resendCooldownSeconds > 0 {
+                    self.resendCooldownSeconds -= 1
+                }
+            }
+        }
+    }
+    
+    private func stopTimer() {
+        timerSubscription?.invalidate()
+        timerSubscription = nil
     }
 }

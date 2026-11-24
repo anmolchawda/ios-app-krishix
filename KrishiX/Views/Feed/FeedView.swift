@@ -30,17 +30,17 @@ public struct FeedView: View {
     public var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                // Top Bar
-                KrishiTopBar(onOpenDrawer: onOpenDrawer)
+                // Top Bar with Prominent Brand Logo
+                KrishiTopBar(onOpenDrawer: onOpenDrawer, showBackButton: false)
                 
-                // Trending Hashtags - ZERO GAP
+                // Trending Hashtags - ZERO GAP (Requirement 6)
                 trendingHashtagsStrip
                 
-                // Posts Count Sub-bar
+                // Posts Count Sub-bar (Matching Video frame_13_39.9s.jpg: "All Posts (1)" & "📍 Durg, Chhattisgarh, India")
                 HStack {
                     Text(selectedHashtag == nil ? "All Posts (\(filteredPosts.count))" : "Filtered by \(selectedHashtag!) (\(filteredPosts.count))")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.35, green: 0.38, blue: 0.42))
+                        .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.35, green: 0.38, blue: 0.42))
                     
                     Spacer()
                     
@@ -49,6 +49,14 @@ public struct FeedView: View {
                             Text(translation.getString("clearFilter"))
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                        }
+                    } else {
+                        HStack(spacing: 4) {
+                            Text("📍")
+                                .font(.system(size: 11))
+                            Text(firebase.currentUser?.location ?? "Durg, Chhattisgarh, India")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.7) : Color(red: 0.4, green: 0.43, blue: 0.46))
                         }
                     }
                 }
@@ -69,7 +77,7 @@ public struct FeedView: View {
                 .background(firebase.isDarkTheme ? Color(red: 0.09, green: 0.10, blue: 0.12) : Color(red: 0.94, green: 0.95, blue: 0.96))
             }
             
-            // Floating Action Button (+)
+            // Floating Action Button (+) Mint-green circle
             Button(action: { showCreatePost = true }) {
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .bold))
@@ -87,7 +95,7 @@ public struct FeedView: View {
         }
     }
     
-    // MARK: - Trending Hashtags Strip
+    // MARK: - Trending Hashtags Strip (ZERO GAP directly under top bar)
     private var trendingHashtagsStrip: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
@@ -163,160 +171,151 @@ public struct FeedView: View {
                         }
                     }
                     
-                    Text(post.userLocation)
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                    HStack(spacing: 6) {
+                        Text(post.userLocation)
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                        
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(.gray)
+                        
+                        Text(post.timeAgo)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
                 }
                 
                 Spacer()
                 
-                Button(action: {}) {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(.gray)
-                        .frame(width: 32, height: 32)
-                }
+                Image(systemName: "ellipsis")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(14)
             
-            // Post Media / Image
+            // Post Image (if present)
             if !post.imageUrl.isEmpty {
-                postMediaView(imageUrl: post.imageUrl)
-            }
-            
-            // Action Bar (Heart, Comment, Share, Bookmark)
-            HStack(spacing: 18) {
-                Button(action: { toggleLike(postId: post.id) }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                            .font(.system(size: 20))
-                            .foregroundColor(post.isLiked ? .red : (firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.3, green: 0.3, blue: 0.3)))
-                        
-                        if post.likesCount > 0 {
-                            Text("\(post.likesCount)")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.3, green: 0.3, blue: 0.3))
+                if post.imageUrl.hasPrefix("http") {
+                    AsyncImage(url: URL(string: post.imageUrl)) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable()
+                                .scaledToFill()
+                                .frame(maxHeight: 280)
+                                .clipped()
+                        case .failure:
+                            postImageFallback
+                        case .empty:
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .padding(40)
+                                Spacer()
+                            }
+                        @unknown default:
+                            postImageFallback
                         }
                     }
-                }
-                
-                Button(action: {}) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "bubble.left")
-                            .font(.system(size: 19))
-                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.3, green: 0.3, blue: 0.3))
-                        
-                        if post.commentsCount > 0 {
-                            Text("\(post.commentsCount)")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.3, green: 0.3, blue: 0.3))
-                        }
-                    }
-                }
-                
-                Button(action: {}) {
-                    Image(systemName: "paperplane")
-                        .font(.system(size: 18))
-                        .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.3, green: 0.3, blue: 0.3))
-                }
-                
-                Spacer()
-                
-                Button(action: { toggleSave(postId: post.id) }) {
-                    Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 19))
-                        .foregroundColor(post.isSaved ? Color(red: 0.13, green: 0.55, blue: 0.28) : (firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.3, green: 0.3, blue: 0.3)))
+                } else if let localImg = UIImage(named: post.imageUrl) {
+                    Image(uiImage: localImg)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxHeight: 280)
+                        .clipped()
+                } else {
+                    postImageFallback
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
             
             // Post Caption & Hashtags
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top, spacing: 6) {
-                    Text(post.username)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
-                    
-                    Text(post.caption)
-                        .font(.system(size: 14))
-                        .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.9) : Color(red: 0.18, green: 0.20, blue: 0.22))
-                }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(post.caption)
+                    .font(.system(size: 14))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                    .lineSpacing(2)
                 
                 if !post.hashtags.isEmpty {
                     HStack(spacing: 6) {
                         ForEach(post.hashtags, id: \.self) { tag in
                             Text(tag)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
                         }
                     }
                 }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, post.imageUrl.isEmpty ? 4 : 10)
+            .padding(.bottom, 12)
+            
+            Divider()
+            
+            // Actions: Like, Comment, Save
+            HStack(spacing: 20) {
+                Button(action: {
+                    firebase.toggleLike(postId: post.id)
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: post.isLiked ? "heart.fill" : "heart")
+                            .font(.system(size: 18))
+                            .foregroundColor(post.isLiked ? .red : (firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.35, green: 0.38, blue: 0.42)))
+                        
+                        Text("\(post.likesCount)")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.35, green: 0.38, blue: 0.42))
+                    }
+                }
                 
-                Text(post.timeAgo)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(Color.gray.opacity(0.8))
-                    .padding(.top, 2)
+                Button(action: {
+                    withAnimation {
+                        showCommentsForPostId = (showCommentsForPostId == post.id) ? nil : post.id
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.right")
+                            .font(.system(size: 18))
+                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.35, green: 0.38, blue: 0.42))
+                        
+                        Text("\(post.commentsCount)")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.35, green: 0.38, blue: 0.42))
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    firebase.toggleSave(postId: post.id)
+                }) {
+                    Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 18))
+                        .foregroundColor(post.isSaved ? Color(red: 0.13, green: 0.55, blue: 0.28) : (firebase.isDarkTheme ? .white.opacity(0.8) : Color(red: 0.35, green: 0.38, blue: 0.42)))
+                }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 14)
+            .padding(.vertical, 10)
         }
-        .background(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
         .padding(.horizontal, 12)
     }
     
-    // Graphic presentation for post media
-    private func postMediaView(imageUrl: String) -> some View {
+    private var postImageFallback: some View {
         ZStack {
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [Color(red: 0.18, green: 0.22, blue: 0.20), Color(red: 0.10, green: 0.12, blue: 0.11)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .aspectRatio(4/3, contentMode: .fit)
-            
-            VStack(spacing: 12) {
-                if imageUrl == "fly_pest" {
-                    Image(systemName: "ant.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(Color(red: 0.85, green: 0.70, blue: 0.25))
-                    Text("Pest Specimen • Brinjal Shoot and Fruit Borer / Whitefly")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                } else if imageUrl == "tomato_earlyblight" {
-                    Image(systemName: "leaf.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(Color(red: 0.85, green: 0.40, blue: 0.25))
-                    Text("Pathology Specimen • Target Board Concentric Rings")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                } else {
-                    Image(systemName: "photo.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(Color.white.opacity(0.7))
-                    Text("Crop Observation")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                }
+            Color(red: 0.92, green: 0.95, blue: 0.93)
+            VStack(spacing: 6) {
+                Image(systemName: "leaf.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                Text("Crop Diagnostic Photo")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
             }
         }
-        .frame(maxWidth: .infinity)
-    }
-    
-    private func toggleLike(postId: String) {
-        if let idx = firebase.communityPosts.firstIndex(where: { $0.id == postId }) {
-            firebase.communityPosts[idx].isLiked.toggle()
-            firebase.communityPosts[idx].likesCount += firebase.communityPosts[idx].isLiked ? 1 : -1
-        }
-    }
-    
-    private func toggleSave(postId: String) {
-        if let idx = firebase.communityPosts.firstIndex(where: { $0.id == postId }) {
-            firebase.communityPosts[idx].isSaved.toggle()
-        }
+        .frame(height: 180)
     }
 }

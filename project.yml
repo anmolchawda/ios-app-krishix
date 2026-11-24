@@ -17,7 +17,7 @@ targets:
     sources:
       - path: KrishiX
         excludes:
-          - "**/Info.plist"
+          - "KrishiX/Resources/Info.plist"
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.krishix.app
       PRODUCT_NAME: KrishiX

@@ -28,7 +28,7 @@ public struct YojnaView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            KrishiTopBar(onOpenDrawer: onOpenDrawer)
+            KrishiTopBar(onOpenDrawer: onOpenDrawer, showBackButton: true, onBack: onBack)
             
             // Sub-header with back button
             HStack {

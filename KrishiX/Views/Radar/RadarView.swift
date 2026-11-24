@@ -3,6 +3,7 @@ import SwiftUI
 public struct RadarView: View {
     public var onOpenDrawer: () -> Void
     public var onConsultDoctor: () -> Void
+    public var onBack: (() -> Void)? = nil
     
     @ObservedObject private var firebase = FirebaseManager.shared
     @ObservedObject private var translation = TranslationManager.shared
@@ -44,14 +45,23 @@ public struct RadarView: View {
         )
     ]
     
-    public init(onOpenDrawer: @escaping () -> Void, onConsultDoctor: @escaping () -> Void) {
+    public init(
+        onOpenDrawer: @escaping () -> Void,
+        onConsultDoctor: @escaping () -> Void,
+        onBack: (() -> Void)? = nil
+    ) {
         self.onOpenDrawer = onOpenDrawer
         self.onConsultDoctor = onConsultDoctor
+        self.onBack = onBack
     }
     
     public var body: some View {
         VStack(spacing: 0) {
-            KrishiTopBar(onOpenDrawer: onOpenDrawer)
+            KrishiTopBar(
+                onOpenDrawer: onOpenDrawer,
+                showBackButton: true,
+                onBack: onBack
+            )
             
             ScrollView {
                 VStack(spacing: 16) {

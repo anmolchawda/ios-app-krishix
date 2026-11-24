@@ -22,22 +22,38 @@ public struct ContentView: View {
                             case 0:
                                 FeedView(onOpenDrawer: { isDrawerOpen = true })
                             case 1:
-                                GuideView(onOpenDrawer: { isDrawerOpen = true })
+                                GuideView(
+                                    onOpenDrawer: { isDrawerOpen = true },
+                                    onBack: { selectedTab = 0 }
+                                )
                             case 2:
-                                AiDoctorView(onOpenDrawer: { isDrawerOpen = true })
+                                AiDoctorView(
+                                    onOpenDrawer: { isDrawerOpen = true },
+                                    onBack: { selectedTab = 0 }
+                                )
                             case 3:
-                                WeatherView(onOpenDrawer: { isDrawerOpen = true })
+                                WeatherView(
+                                    onOpenDrawer: { isDrawerOpen = true },
+                                    onBack: { selectedTab = 0 }
+                                )
                             case 4:
-                                MandiView(onOpenDrawer: { isDrawerOpen = true })
+                                MandiView(
+                                    onOpenDrawer: { isDrawerOpen = true },
+                                    onBack: { selectedTab = 0 }
+                                )
                             case 5:
                                 RadarView(
                                     onOpenDrawer: { isDrawerOpen = true },
-                                    onConsultDoctor: { selectedTab = 2 }
+                                    onConsultDoctor: { selectedTab = 2 },
+                                    onBack: { selectedTab = 0 }
                                 )
                             case 6:
                                 ProfileSettingsView(onBack: { selectedTab = 0 })
                             case 7:
-                                YojnaView(onOpenDrawer: { isDrawerOpen = true }, onBack: { selectedTab = 0 })
+                                YojnaView(
+                                    onOpenDrawer: { isDrawerOpen = true },
+                                    onBack: { selectedTab = 0 }
+                                )
                             default:
                                 FeedView(onOpenDrawer: { isDrawerOpen = true })
                             }

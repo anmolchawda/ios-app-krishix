@@ -3,66 +3,70 @@ import UIKit
 
 public struct WeatherView: View {
     public var onOpenDrawer: () -> Void
+    public var onBack: (() -> Void)? = nil
     
     @ObservedObject private var firebase = FirebaseManager.shared
     @ObservedObject private var translation = TranslationManager.shared
     
     @State private var searchText: String = ""
-    @State private var isSearching: Bool = false
+    @State private var suggestions: [String] = []
     @State private var weatherInfo = WeatherInfo()
+    @State private var pushAlertsEnabled: Bool = true
+    @State private var selectedDayIndex: Int = 0
     
-    let allDistricts = [
-        "Mumbai, Maharashtra", "Pune, Maharashtra", "Nashik, Maharashtra", "Nagpur, Maharashtra",
-        "Indore, Madhya Pradesh", "Bhopal, Madhya Pradesh", "Ujjain, Madhya Pradesh", "Dewas, Madhya Pradesh",
-        "Raipur, Chhattisgarh", "Durg, Chhattisgarh", "Bilaspur, Chhattisgarh",
-        "Jaipur, Rajasthan", "Kota, Rajasthan", "Jodhpur, Rajasthan",
-        "Ahmedabad, Gujarat", "Surat, Gujarat", "Rajkot, Gujarat",
-        "Ludhiana, Punjab", "Amritsar, Punjab", "Karnal, Haryana"
+    // 7-day Dual Temperature Data (Max & Min) matching Video rest_48.0s.jpg
+    let weeklyForecastData: [(day: String, date: String, maxTemp: Int, minTemp: Int, condition: String, icon: String)] = [
+        ("Tod", "24", 32, 19, "Sunny & Warm", "sun.max.fill"),
+        ("Tue", "25", 33, 20, "Clear Sky", "sun.max.fill"),
+        ("Wed", "26", 31, 19, "Partly Cloudy", "cloud.sun.fill"),
+        ("Thu", "27", 30, 18, "Mild Wind", "wind"),
+        ("Fri", "28", 29, 17, "Light Shower Risk", "cloud.drizzle.fill"),
+        ("Sat", "29", 31, 18, "Clear Sky", "sun.max.fill"),
+        ("Sun", "30", 32, 19, "Sunny", "sun.max.fill")
     ]
     
     let hourlyList = [
         HourlyForecast(time: "06:00", temp: 20, iconName: "sunrise.fill"),
-        HourlyForecast(time: "09:00", temp: 23, iconName: "sun.max.fill"),
-        HourlyForecast(time: "12:00", temp: 27, iconName: "sun.max.fill"),
-        HourlyForecast(time: "15:00", temp: 28, iconName: "sun.max.fill"),
-        HourlyForecast(time: "18:00", temp: 24, iconName: "cloud.sun.fill"),
-        HourlyForecast(time: "21:00", temp: 22, iconName: "moon.stars.fill")
+        HourlyForecast(time: "09:00", temp: 24, iconName: "sun.max.fill"),
+        HourlyForecast(time: "12:00", temp: 30, iconName: "sun.max.fill"),
+        HourlyForecast(time: "15:00", temp: 32, iconName: "sun.max.fill"),
+        HourlyForecast(time: "18:00", temp: 27, iconName: "cloud.sun.fill"),
+        HourlyForecast(time: "21:00", temp: 23, iconName: "moon.stars.fill")
     ]
     
-    public init(onOpenDrawer: @escaping () -> Void) {
+    public init(onOpenDrawer: @escaping () -> Void, onBack: (() -> Void)? = nil) {
         self.onOpenDrawer = onOpenDrawer
-    }
-    
-    var suggestions: [String] {
-        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return []
-        }
-        return allDistricts.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        self.onBack = onBack
     }
     
     public var body: some View {
         VStack(spacing: 0) {
-            KrishiTopBar(onOpenDrawer: onOpenDrawer)
+            // Top Bar with Back Button navigating to Feed (Requirement 13)
+            KrishiTopBar(
+                onOpenDrawer: onOpenDrawer,
+                showBackButton: true,
+                onBack: onBack
+            )
             
             ScrollView {
                 VStack(spacing: 16) {
-                    // Search Bar with Live Suggestions Dropdown
+                    // Search Bar with Live Suggestions Dropdown (Requirement 11)
                     searchSection
                     
-                    // Location Disabled Alert Banner
-                    locationBanner
-                    
-                    // Main Weather Card
+                    // Main Weather Current Overview Card
                     mainWeatherCard
+                    
+                    // Interactive 7-Day Dual Temperature Graph (Matching Video rest_48.0s.jpg)
+                    sevenDayDualTemperatureGraph
+                    
+                    // Extreme Weather Push Alerts Card
+                    extremeWeatherAlertsCard
+                    
+                    // Spraying Advisory Card
+                    sprayingAdvisoryCard
                     
                     // Hourly Forecast Strip
                     hourlyForecastSection
-                    
-                    // 7-Day Extended Forecast Strip
-                    weeklyForecastSection
-                    
-                    // Seasonal Pass Card
-                    seasonalPassCard
                 }
                 .padding(16)
                 .padding(.bottom, 60)
@@ -71,7 +75,7 @@ public struct WeatherView: View {
         }
     }
     
-    // MARK: - Search Bar & Live Dropdown
+    // MARK: - Search Bar & Live Geocoding Suggestions Dropdown (Requirement 11)
     private var searchSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
@@ -81,9 +85,21 @@ public struct WeatherView: View {
                 TextField(translation.getString("searchLocation"), text: $searchText)
                     .font(.system(size: 15))
                     .foregroundColor(firebase.isDarkTheme ? .white : .black)
+                    .onChange(of: searchText) { query in
+                        if query.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 {
+                            firebase.searchDistricts(query: query) { results in
+                                self.suggestions = results
+                            }
+                        } else {
+                            self.suggestions = []
+                        }
+                    }
                 
                 if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
+                    Button(action: {
+                        searchText = ""
+                        suggestions = []
+                    }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.gray)
                     }
@@ -93,7 +109,7 @@ public struct WeatherView: View {
             .background(firebase.isDarkTheme ? Color(red: 0.14, green: 0.15, blue: 0.18) : Color.white)
             .cornerRadius(suggestions.isEmpty ? 12 : 0)
             
-            // Autocomplete suggestions list
+            // Live Autocomplete Suggestions List
             if !suggestions.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     Divider()
@@ -101,6 +117,7 @@ public struct WeatherView: View {
                         Button(action: {
                             weatherInfo.location = place
                             searchText = ""
+                            suggestions = []
                         }) {
                             HStack {
                                 Image(systemName: "mappin.and.ellipse")
@@ -127,30 +144,9 @@ public struct WeatherView: View {
         }
     }
     
-    // MARK: - Location Banner
-    private var locationBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "location.slash.fill")
-                .foregroundColor(Color(red: 0.85, green: 0.55, blue: 0.15))
-                .font(.system(size: 14))
-            
-            Text("Location disabled • Tap to enable GPS for hyper-local advisory")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : Color(red: 0.25, green: 0.28, blue: 0.30))
-            
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(firebase.isDarkTheme ? Color(red: 0.15, green: 0.16, blue: 0.19) : Color.white)
-        )
-    }
-    
     // MARK: - Main Weather Card
     private var mainWeatherCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 4) {
@@ -158,207 +154,287 @@ public struct WeatherView: View {
                             .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
                             .font(.system(size: 14))
                         Text(weatherInfo.location)
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 17, weight: .bold))
                             .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
                     }
                     
-                    Text(weatherInfo.condition)
-                        .font(.system(size: 13))
+                    Text("Today, \(weeklyForecastData[selectedDayIndex].condition)")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 
                 Spacer()
                 
-                Text("\(weatherInfo.temp)°C")
-                    .font(.system(size: 44, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                Image(systemName: weeklyForecastData[selectedDayIndex].icon)
+                    .font(.system(size: 38))
+                    .foregroundColor(.orange)
             }
             
-            // Spray Advisory Banner
-            HStack(spacing: 8) {
-                Image(systemName: weatherInfo.isSpraySafe ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .foregroundColor(weatherInfo.isSpraySafe ? Color(red: 0.13, green: 0.55, blue: 0.28) : .orange)
+            HStack(alignment: .lastTextBaseline, spacing: 10) {
+                Text("\(weeklyForecastData[selectedDayIndex].maxTemp)°C")
+                    .font(.system(size: 42, weight: .heavy, design: .rounded))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
                 
-                Text(weatherInfo.sprayAdvisory)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.9) : Color(red: 0.15, green: 0.18, blue: 0.22))
+                Text("/ \(weeklyForecastData[selectedDayIndex].minTemp)°C")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.blue)
             }
-            .padding(12)
-            .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.10))
-            .cornerRadius(10)
             
-            // 3-Metric Grid: Humidity, Wind, Rain
-            HStack(spacing: 12) {
-                metricBox(title: "Humidity", value: "\(weatherInfo.humidity)%", icon: "humidity")
-                metricBox(title: "Wind Speed", value: "\(weatherInfo.windSpeedKm) km/h", icon: "wind")
-                metricBox(title: "Rainfall", value: "\(weatherInfo.rainChance)%", icon: "cloud.rain.fill")
+            Divider()
+            
+            // Atmospheric Parameters Grid
+            HStack(spacing: 16) {
+                weatherStat(icon: "humidity.fill", title: "Humidity", value: "\(weatherInfo.humidity)%")
+                weatherStat(icon: "wind", title: "Wind", value: "\(weatherInfo.windSpeed) km/h")
+                weatherStat(icon: "drop.fill", title: "Precipitation", value: "\(weatherInfo.precipitation)%")
             }
         }
-        .padding(20)
+        .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
                 .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
         )
     }
     
-    private func metricBox(title: String, value: String, icon: String) -> some View {
-        VStack(spacing: 4) {
+    private func weatherStat(icon: String, title: String, value: String) -> some View {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
                 .font(.system(size: 16))
-            Text(value)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(firebase.isDarkTheme ? .white : .primary)
-            Text(title)
-                .font(.system(size: 11))
-                .foregroundColor(.gray)
+                .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+                Text(value)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(firebase.isDarkTheme ? Color(red: 0.16, green: 0.17, blue: 0.20) : Color(red: 0.96, green: 0.97, blue: 0.98))
-        .cornerRadius(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    // MARK: - Hourly Forecast
-    private var hourlyForecastSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("6-Hour Forecast")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.22, blue: 0.25))
-            
-            ScrollView(.horizontal, showsIndicators: false) {
+    // MARK: - 7-Day Dual Temperature Graph (Matching Video rest_48.0s.jpg)
+    private var sevenDayDualTemperatureGraph: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("7-Day Temperature Trend")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+                
+                Spacer()
+                
                 HStack(spacing: 12) {
-                    ForEach(hourlyList) { hour in
-                        VStack(spacing: 6) {
-                            Text(hour.time)
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
-                            
-                            Image(systemName: hour.iconName)
-                                .font(.system(size: 20))
-                                .foregroundColor(Color(red: 0.90, green: 0.65, blue: 0.15))
-                            
-                            Text("\(hour.temp)°C")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(firebase.isDarkTheme ? .white : .primary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
-                        .cornerRadius(12)
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.orange).frame(width: 8, height: 8)
+                        Text("Max").font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
+                    }
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.blue).frame(width: 8, height: 8)
+                        Text("Min").font(.system(size: 11, weight: .bold)).foregroundColor(.blue)
                     }
                 }
             }
-        }
-    }
-    
-    let weeklyForecast = [
-        DailyForecast(day: "Mon", date: "24 Nov", condition: "Sunny", maxTemp: 32, minTemp: 21, rainChance: 0, iconType: "sun.max.fill"),
-        DailyForecast(day: "Tue", date: "25 Nov", condition: "Partly Cloudy", maxTemp: 31, minTemp: 20, rainChance: 10, iconType: "cloud.sun.fill"),
-        DailyForecast(day: "Wed", date: "26 Nov", condition: "Clear Sky", maxTemp: 33, minTemp: 22, rainChance: 0, iconType: "sun.max.fill"),
-        DailyForecast(day: "Thu", date: "27 Nov", condition: "Moderate Wind", maxTemp: 29, minTemp: 19, rainChance: 15, iconType: "wind"),
-        DailyForecast(day: "Fri", date: "28 Nov", condition: "Scattered Rain", maxTemp: 28, minTemp: 18, rainChance: 45, iconType: "cloud.rain.fill", sprayAdvisory: "High rain risk. Postpone foliar spraying."),
-        DailyForecast(day: "Sat", date: "29 Nov", condition: "Sunny", maxTemp: 30, minTemp: 20, rainChance: 5, iconType: "sun.max.fill"),
-        DailyForecast(day: "Sun", date: "30 Nov", condition: "Clear Sky", maxTemp: 31, minTemp: 21, rainChance: 0, iconType: "sun.max.fill")
-    ]
-    
-    // MARK: - 7-Day Forecast Section
-    private var weeklyForecastSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("7-Day Weather Outlook")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.2, green: 0.22, blue: 0.25))
             
-            VStack(spacing: 8) {
-                ForEach(weeklyForecast) { item in
-                    HStack(spacing: 12) {
-                        Text(item.day)
-                            .font(.system(size: 13, weight: .bold))
-                            .frame(width: 36, alignment: .leading)
-                        
-                        Text(item.date)
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
-                            .frame(width: 48, alignment: .leading)
-                        
-                        Image(systemName: item.iconType)
-                            .foregroundColor(.orange)
-                            .font(.system(size: 16))
-                            .frame(width: 24)
-                        
-                        Text(item.condition)
-                            .font(.system(size: 12))
-                            .foregroundColor(firebase.isDarkTheme ? .white.opacity(0.85) : .primary)
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 4) {
-                            Text("\(item.maxTemp)°")
-                                .font(.system(size: 13, weight: .bold))
-                            Text("\(item.minTemp)°")
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
+            // Day Selector Pills Row (Tod 24, Tue 25, Wed 26, ...)
+            HStack(spacing: 6) {
+                ForEach(0..<weeklyForecastData.count, id: \.self) { idx in
+                    let item = weeklyForecastData[idx]
+                    Button(action: {
+                        selectedDayIndex = idx
+                    }) {
+                        VStack(spacing: 2) {
+                            Text(item.day)
+                                .font(.system(size: 11, weight: selectedDayIndex == idx ? .heavy : .semibold))
+                            Text(item.date)
+                                .font(.system(size: 12, weight: .bold))
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .foregroundColor(selectedDayIndex == idx ? .white : (firebase.isDarkTheme ? .white.opacity(0.8) : Color.primary))
+                        .background(
+                            selectedDayIndex == idx ?
+                            Color(red: 0.13, green: 0.55, blue: 0.28) :
+                            (firebase.isDarkTheme ? Color(red: 0.18, green: 0.20, blue: 0.24) : Color(red: 0.94, green: 0.95, blue: 0.96))
+                        )
+                        .cornerRadius(10)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
-                    .cornerRadius(10)
                 }
             }
+            
+            // Dual Temperature Curve Canvas
+            GeometryReader { geo in
+                let width = geo.size.width
+                let height = geo.size.height
+                let stepX = width / CGFloat(max(1, weeklyForecastData.count - 1))
+                
+                // Max temps (Orange line)
+                let maxPoints: [CGPoint] = weeklyForecastData.enumerated().map { idx, item in
+                    let norm = CGFloat(item.maxTemp - 15) / 25.0
+                    let y = height * (1.0 - norm * 0.7 - 0.25)
+                    return CGPoint(x: CGFloat(idx) * stepX, y: y)
+                }
+                
+                // Min temps (Blue line)
+                let minPoints: [CGPoint] = weeklyForecastData.enumerated().map { idx, item in
+                    let norm = CGFloat(item.minTemp - 10) / 25.0
+                    let y = height * (1.0 - norm * 0.7 - 0.05)
+                    return CGPoint(x: CGFloat(idx) * stepX, y: y)
+                }
+                
+                ZStack {
+                    // Orange Max Line
+                    Path { path in
+                        for (i, pt) in maxPoints.enumerated() {
+                            if i == 0 { path.move(to: pt) }
+                            else { path.addLine(to: pt) }
+                        }
+                    }
+                    .stroke(Color.orange, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    
+                    // Blue Min Line
+                    Path { path in
+                        for (i, pt) in minPoints.enumerated() {
+                            if i == 0 { path.move(to: pt) }
+                            else { path.addLine(to: pt) }
+                        }
+                    }
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    
+                    // Dots & Numbers
+                    ForEach(0..<maxPoints.count, id: \.self) { i in
+                        Circle().fill(Color.orange).frame(width: 6, height: 6).position(maxPoints[i])
+                        Text("\(weeklyForecastData[i].maxTemp)°")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.orange)
+                            .position(x: maxPoints[i].x, y: maxPoints[i].y - 12)
+                        
+                        Circle().fill(Color.blue).frame(width: 6, height: 6).position(minPoints[i])
+                        Text("\(weeklyForecastData[i].minTemp)°")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.blue)
+                            .position(x: minPoints[i].x, y: minPoints[i].y + 12)
+                    }
+                }
+            }
+            .frame(height: 110)
+            .padding(.top, 6)
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
     }
     
-    // MARK: - Seasonal Pass Card
-    private var seasonalPassCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Image(systemName: "crown.fill")
-                        .foregroundColor(.yellow)
-                        .font(.system(size: 14))
-                    Text("₹249 Seasonal Pass")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
-                }
-                Text("Unlimited weather alerts, spray windows & frost warnings")
-                    .font(.system(size: 12))
+    // MARK: - Extreme Weather Push Alerts Card
+    private var extremeWeatherAlertsCard: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "bell.badge.fill")
+                    .foregroundColor(.red)
+                    .font(.system(size: 18))
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Extreme Weather Crop Push Alerts")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                Text("Receive instant notifications for sudden hail, frost, or unseasonal heavy rain.")
+                    .font(.system(size: 11))
                     .foregroundColor(.gray)
             }
             
             Spacer()
             
-            Button(action: {}) {
-                Text("Active")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.15))
-                    .cornerRadius(8)
-            }
+            Toggle("", isOn: $pushAlertsEnabled)
+                .labelsHidden()
         }
-        .padding(16)
+        .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(firebase.isDarkTheme ? Color(red: 0.13, green: 0.14, blue: 0.17) : Color.white)
         )
     }
-}
-
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
+    
+    // MARK: - Spraying Advisory Card
+    private var sprayingAdvisoryCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "drop.triangle.fill")
+                    .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                Text("Agronomic Spraying Window Advisory")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+            }
+            
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("OPTIMAL WINDOW")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                    Text("06:00 AM - 09:30 AM")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(firebase.isDarkTheme ? .white : .primary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("SPRAY FEASIBILITY")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.blue)
+                    Text("High (Wind < 10 km/h)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(red: 0.13, green: 0.55, blue: 0.28))
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(red: 0.13, green: 0.55, blue: 0.28).opacity(0.25), lineWidth: 1)
+                )
+        )
     }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
+    
+    // MARK: - Hourly Forecast Section
+    private var hourlyForecastSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Hourly Temperature Progression")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.12, green: 0.15, blue: 0.18))
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(hourlyList, id: \.time) { item in
+                        VStack(spacing: 6) {
+                            Text(item.time)
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
+                            
+                            Image(systemName: item.iconName)
+                                .font(.system(size: 18))
+                                .foregroundColor(.orange)
+                            
+                            Text("\(item.temp)°C")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(firebase.isDarkTheme ? .white : Color(red: 0.15, green: 0.18, blue: 0.22))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(firebase.isDarkTheme ? Color(red: 0.15, green: 0.16, blue: 0.19) : Color.white)
+                        .cornerRadius(12)
+                    }
+                }
+            }
+        }
     }
 }

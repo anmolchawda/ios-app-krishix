@@ -13,6 +13,19 @@ public struct DiagnosisResponse: Codable, Equatable {
     public var scientificName: String
     public var favourableClimate: String
     public var sprayAdvisory: String
+    
+    // Chain-of-Thought Diagnostic Details
+    public var differentialAlternatives: [String]
+    public var symptomsObserved: String
+    public var lesionMargins: String
+    public var pestsOrganisms: String
+    public var abioticStress: String
+    public var microclimateRisk: String
+    public var nutritionalLockout: String
+    public var ruledOutPathogens: String
+    public var culturalControls: [String]
+    public var biologicalTactics: [String]
+    public var chemicalRemediation: [String]
 
     public var confidenceScore: Int {
         Int((confidence * 100).clamped(to: 1...100))
@@ -30,7 +43,30 @@ public struct DiagnosisResponse: Codable, Equatable {
         diagnosticClass: String = "Fungal / Oomycete Disease",
         scientificName: String = "Puccinia striiformis f. sp. tritici",
         favourableClimate: String = "Cool and moist conditions (10°C - 20°C) with persistent fog or morning dew.",
-        sprayAdvisory: String = "Ideal spraying window: Early morning before wind speed exceeds 10 km/h."
+        sprayAdvisory: String = "Ideal spraying window: Early morning before wind speed exceeds 10 km/h.",
+        differentialAlternatives: [String] = ["Phomopsis Fruit Rot", "Fruit Anthracnose"],
+        symptomsObserved: String = "Chlorotic striations along leaf venation, with powdery pustules erupting through foliar epidermis.",
+        lesionMargins: String = "Distinct chlorotic halo bordering linear necrotic margin.",
+        pestsOrganisms: String = "No live insect pests or vectors observed on foliar surfaces.",
+        abioticStress: String = "No chemical droplet scorch or high EC leaf tip burn detected.",
+        microclimateRisk: String = "High relative humidity (>85%) and leaf wetness favor rapid spore germination.",
+        nutritionalLockout: String = "Nitrogen levels adequate; no symmetric lower leaf V-chlorosis.",
+        ruledOutPathogens: String = "Brown Rust ruled out due to lack of scattered circular pustules.",
+        culturalControls: [String] = [
+            "Maintain optimal plant spacing to promote airflow.",
+            "Avoid excessive nitrogen fertilization which increases susceptibility.",
+            "Remove and burn severely infected crop debris after harvest."
+        ],
+        biologicalTactics: [String] = [
+            "Foliar application of Trichoderma viride @ 5g/L during early vegetative stage.",
+            "Spray Neem Seed Kernel Extract (NSKE 5%) as prophylactic barrier.",
+            "Use Pseudomonas fluorescens @ 10g/L in root zone."
+        ],
+        chemicalRemediation: [String] = [
+            "Propiconazole 25% EC (FRAC 3) @ 1 ml per Litre of water.",
+            "Tebuconazole 25.9% EC (FRAC 3) @ 1.25 ml per Litre of water.",
+            "Azoxystrobin 18.2% + Difenoconazole 11.4% SC (FRAC 11 + 3) @ 1 ml/L."
+        ]
     ) {
         self.success = success
         self.diagnosisText = diagnosisText
@@ -44,6 +80,17 @@ public struct DiagnosisResponse: Codable, Equatable {
         self.scientificName = scientificName
         self.favourableClimate = favourableClimate
         self.sprayAdvisory = sprayAdvisory
+        self.differentialAlternatives = differentialAlternatives
+        self.symptomsObserved = symptomsObserved
+        self.lesionMargins = lesionMargins
+        self.pestsOrganisms = pestsOrganisms
+        self.abioticStress = abioticStress
+        self.microclimateRisk = microclimateRisk
+        self.nutritionalLockout = nutritionalLockout
+        self.ruledOutPathogens = ruledOutPathogens
+        self.culturalControls = culturalControls
+        self.biologicalTactics = biologicalTactics
+        self.chemicalRemediation = chemicalRemediation
     }
 }
 

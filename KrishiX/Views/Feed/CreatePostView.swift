@@ -13,6 +13,10 @@ public struct CreatePostView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var isPosting: Bool = false
     
+    // Policy Violation Alert State (Matching video frame_14_42.9s.jpg)
+    @State private var showPolicyAlert: Bool = false
+    @State private var policyAlertMessage: String = ""
+    
     let cropOptions = ["Brinjal", "Tomato", "Wheat", "Soybean", "Paddy (Dhan)", "Cotton", "Chilli"]
     
     public init() {}
@@ -102,12 +106,19 @@ public struct CreatePostView: View {
                     presentationMode.wrappedValue.dismiss()
                 }
             )
+            .alert(isPresented: $showPolicyAlert) {
+                // Exact alert matching video frame_14_42.9s.jpg
+                Alert(
+                    title: Text("KrishiX Policy Violation"),
+                    message: Text(policyAlertMessage),
+                    dismissButton: .default(Text("Understood"))
+                )
+            }
         }
     }
     
     private func submitPost() {
-        guard !caption.isEmpty else { return }
-        isPosting = true
+        guard !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         
         let tags = hashtag
             .components(separatedBy: " ")
@@ -115,26 +126,29 @@ public struct CreatePostView: View {
             .filter { !$0.isEmpty }
             .map { $0.hasPrefix("#") ? $0 : "#\($0)" }
         
-        let newPost = Post(
-            id: UUID().uuidString,
-            userId: firebase.currentUser?.id ?? "farmer_01",
-            username: firebase.currentUser?.username ?? "99side",
-            userDisplayName: firebase.currentUser?.displayName ?? "99side",
-            userLocation: firebase.currentUser?.location ?? "Mumbai, Maharashtra",
-            imageUrl: selectedImage != nil ? "custom_upload" : "",
+        // 1. Content Safety Policy Guardrail Check
+        let safety = ContentSafetyManager.shared.evaluatePostSafety(caption: caption, hashtags: tags)
+        if !safety.isApproved {
+            policyAlertMessage = safety.message
+            showPolicyAlert = true
+            return
+        }
+        
+        isPosting = true
+        firebase.createCommunityPostWithImage(
             caption: caption,
             cropCategory: selectedCrop,
             hashtags: tags.isEmpty ? ["#\(selectedCrop.lowercased())"] : tags,
-            likesCount: 0,
-            commentsCount: 0,
-            isLiked: false,
-            isSaved: false,
-            timeAgo: "Just now",
-            isAuthorSubscribed: true
-        )
-        
-        firebase.communityPosts.insert(newPost, at: 0)
-        isPosting = false
-        presentationMode.wrappedValue.dismiss()
+            image: selectedImage
+        ) { result in
+            isPosting = false
+            switch result {
+            case .success:
+                presentationMode.wrappedValue.dismiss()
+            case .failure(let error):
+                policyAlertMessage = error.localizedDescription
+                showPolicyAlert = true
+            }
+        }
     }
 }
