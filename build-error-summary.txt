@@ -1,0 +1,24 @@
+                        ^
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Services/FirebaseManager.swift:430:25: warning: no calls to throwing functions occur within 'try' expression
+            if let db = try? Firestore.firestore() {
+                        ^
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Views/Mandi/MandiView.swift:304:46: error: type 'MandiGeoData' has no member 'mspBenchmark'
+            self.mspBenchmark = MandiGeoData.mspBenchmark(for: selectedCommodity)
+                                ~~~~~~~~~~~~ ^~~~~~~~~~~~
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Views/Weather/WeatherView.swift:141:44: error: extra argument 'corners' in call
+                .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
+                             ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Views/Weather/WeatherView.swift:141:46: error: reference to member 'bottomLeft' cannot be resolved without a contextual type
+                .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
+                                             ^
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Views/Weather/WeatherView.swift:141:59: error: reference to member 'bottomRight' cannot be resolved without a contextual type
+                .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
+                                                          ^
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Views/Weather/WeatherView.swift:188:80: error: value of type 'WeatherInfo' has no dynamic member 'windSpeed' using key path from root type 'WeatherInfo'
+                weatherStat(icon: "wind", title: "Wind", value: "\(weatherInfo.windSpeed) km/h")
+                                                                   ~~~~~~~~~~~ ^~~~~~~~~
+/Users/runner/work/ios-app-krishix/ios-app-krishix/KrishiX/Views/Weather/WeatherView.swift:188:68: error: referencing subscript 'subscript(dynamicMember:)' requires wrapper 'Binding<WeatherInfo>'
+                weatherStat(icon: "wind", title: "Wind", value: "\(weatherInfo.windSpeed) km/h")
+                                                                   ^
+                                                                   $
+
